@@ -1,0 +1,60 @@
+id: proteininfo9
+source_id: WP_198091741.1
+name: TEM family class A beta-lactamase
+sequence: MTHFRVALIPFFAAFCLPVFAHPETLVKVKDAEDQLGARVGYIELDLNSGKILESFRPEERFPMMSTFKVLLCGAVLSRVDAGQEQLGRRIHYSQNDLVEYSPVTEKHLTDGMTVRELCSAAITMSDNTAANLLLTTIGGPKELTAFLHNMGDHVTRLDRWEPELNEAIPNDERDTTMPAAMATTLRKLLTGELLTLASRQQLIDWMEADKVAGPLLRSALPAGWFIADKSGAGERGSRGIIAALGPDGKPSRIVVIYTTGSQATMDERNRQIAEIGASLIKHW
+organism:
+  id: organism16
+  name: !!python/object/new:Bio.Entrez.Parser.StringElement
+    args:
+      - Klebsiella pneumoniae
+    state: &id001
+      tag: ScientificName
+      attributes: {}
+  taxonomy_id: !!python/object/new:Bio.Entrez.Parser.StringElement
+    args:
+      - '573'
+    state:
+      tag: TaxId
+      attributes: {}
+  domain: !!python/object/new:Bio.Entrez.Parser.StringElement
+    args:
+      - Bacteria
+    state:
+      tag: ScientificName
+      attributes: {}
+  phylum: !!python/object/new:Bio.Entrez.Parser.StringElement
+    args:
+      - Pseudomonadota
+    state:
+      tag: ScientificName
+      attributes: {}
+  tax_class: !!python/object/new:Bio.Entrez.Parser.StringElement
+    args:
+      - Gammaproteobacteria
+    state:
+      tag: ScientificName
+      attributes: {}
+  order: !!python/object/new:Bio.Entrez.Parser.StringElement
+    args:
+      - Enterobacterales
+    state:
+      tag: ScientificName
+      attributes: {}
+  family: !!python/object/new:Bio.Entrez.Parser.StringElement
+    args:
+      - Enterobacteriaceae
+    state:
+      tag: ScientificName
+      attributes: {}
+  genus: !!python/object/new:Bio.Entrez.Parser.StringElement
+    args:
+      - Klebsiella
+    state:
+      tag: ScientificName
+      attributes: {}
+  species: !!python/object/new:Bio.Entrez.Parser.StringElement
+    args:
+      - Klebsiella pneumoniae
+    state: *id001
+ec_number: 3.5.2.6
+mol_weight: 31157.0
