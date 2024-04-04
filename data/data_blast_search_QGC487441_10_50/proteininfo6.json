@@ -1,0 +1,34 @@
+{
+  "id": "proteininfo6",
+  "source_id": "WP_176550731.1",
+  "name": "TEM family class A beta-lactamase",
+  "sequence": "ALIPFFAAFCLPVFAHPETLVKVKDAEDQLGARVGYIELDLNSGKILESFRPEERFPMMSTFKVLLCGAVLSRVDAGQEQLGRRIHYSQNDLVEYSPVTEKHLTDGMTVRELCSAAITMSDNTAANLLLTTIGGPKELTAFLHNMGDHVTRLDRWEPELNEAIPNDERDTTMPAAMATTLRKLLTGELLTLASRQQLIDWMEADKVAGPLLRSALPAGWFIADKSGAGERGSRGIIAALGPDGKPSRIVVIYTTGSQATMDERNRQIAEIGASLIKHW",
+  "organism": {
+    "id": "organism15",
+    "name": "Escherichia coli",
+    "taxonomy_id": "562",
+    "domain": "Bacteria",
+    "phylum": "Pseudomonadota",
+    "tax_class": "Gammaproteobacteria",
+    "order": "Enterobacterales",
+    "family": "Enterobacteriaceae",
+    "genus": "Escherichia",
+    "species": "Escherichia coli"
+  },
+  "regions": [
+    {
+      "id": "proteinregion5",
+      "name": "PRK15442",
+      "spans": [
+        {
+          "id": "span7",
+          "start": 0,
+          "end": 278
+        }
+      ],
+      "note": "beta-lactamase TEM; Provisional",
+      "cross_reference": "CDD:185339"
+    }
+  ],
+  "ec_number": "3.5.2.6"
+}

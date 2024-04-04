@@ -1,0 +1,20 @@
+{
+  "id": "proteininfo9",
+  "source_id": "WP_198091741.1",
+  "name": "TEM family class A beta-lactamase",
+  "sequence": "MTHFRVALIPFFAAFCLPVFAHPETLVKVKDAEDQLGARVGYIELDLNSGKILESFRPEERFPMMSTFKVLLCGAVLSRVDAGQEQLGRRIHYSQNDLVEYSPVTEKHLTDGMTVRELCSAAITMSDNTAANLLLTTIGGPKELTAFLHNMGDHVTRLDRWEPELNEAIPNDERDTTMPAAMATTLRKLLTGELLTLASRQQLIDWMEADKVAGPLLRSALPAGWFIADKSGAGERGSRGIIAALGPDGKPSRIVVIYTTGSQATMDERNRQIAEIGASLIKHW",
+  "organism": {
+    "id": "organism14",
+    "name": "Klebsiella pneumoniae",
+    "taxonomy_id": "573",
+    "domain": "Bacteria",
+    "phylum": "Pseudomonadota",
+    "tax_class": "Gammaproteobacteria",
+    "order": "Enterobacterales",
+    "family": "Enterobacteriaceae",
+    "genus": "Klebsiella",
+    "species": "Klebsiella pneumoniae"
+  },
+  "ec_number": "3.5.2.6",
+  "mol_weight": 31157.0
+}

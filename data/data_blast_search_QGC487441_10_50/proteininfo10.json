@@ -1,0 +1,32 @@
+{
+  "id": "proteininfo10",
+  "source_id": "WP_193579746.1",
+  "name": "TEM family class A beta-lactamase",
+  "sequence": "FRVALIPFFAAFCLPVFAHPETLVKVKDAEDQLGARVGYIELDLNSGKILESFRPEERFPMMSTFKVLLCGAVLSRVDAGQEQLGRRIHYSQNDLVEYSPVTEKHLTDGMTVRELCSAAITMSDNTAANLLLTTIGGPKELTAFLHNMGDHVTRLDRWEPELNEAIPNDERDTTMPAAMATTLRKLLTGELLTLASRQQLIDWMEADKVAGPLLRSALPAGWFIADKSGAGERGSRGIIAALGPDGKPSRIVVIYTTGSQATMDERNRQIAEIGASLIKHW",
+  "organism": {
+    "id": "organism17",
+    "name": "Enterobacteriaceae",
+    "taxonomy_id": "543",
+    "domain": "Bacteria",
+    "phylum": "Pseudomonadota",
+    "tax_class": "Gammaproteobacteria",
+    "order": "Enterobacterales",
+    "species": "Enterobacteriaceae"
+  },
+  "regions": [
+    {
+      "id": "proteinregion7",
+      "name": "PRK15442",
+      "spans": [
+        {
+          "id": "span10",
+          "start": 0,
+          "end": 281
+        }
+      ],
+      "note": "beta-lactamase TEM; Provisional",
+      "cross_reference": "CDD:185339"
+    }
+  ],
+  "ec_number": "3.5.2.6"
+}
