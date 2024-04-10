@@ -1,0 +1,38 @@
+{
+  "id": "proteininfo8",
+  "source_id": "ANG16975.1",
+  "name": "beta-lactamase TEM-1 variant",
+  "sequence": "MSIQPFRVALIPFFAAFCLPVFAHPETLVKVKDAEDQLGARVGYIELDLNSGKILESFRPEERFPMMSTFKVLLCGAVLSRVDAGQEQLGRRIHYSQNDLVEYSPVTEKHLTDGMTVRELCSAAITMSDNTAANLLLTTIGGPKELTAFLHNMGDHVTRLDRWEPELNEAIPNDERDTTMPAAMATTLRKLLTGELLTLASRQQLIDWMEADKVAGPLLRSALPAGWFIADKSGAGERGSRGIIAALGPDGKPSRIVVIYTTGSQATMDERNRQIAEIGASLIKHW",
+  "organism": {
+    "id": "organism41",
+    "name": "synthetic construct",
+    "taxonomy_id": "32630",
+    "species": "synthetic construct"
+  },
+  "regions": [
+    {
+      "id": "proteinregion8",
+      "name": "PRK15442",
+      "spans": [
+        {
+          "id": "span15",
+          "start": 2,
+          "end": 286
+        }
+      ],
+      "note": "beta-lactamase TEM; Provisional",
+      "cross_reference": "CDD:185339"
+    }
+  ],
+  "coding_sequence_ref": {
+    "id": "KT399471.1",
+    "spans": [
+      {
+        "id": "span16",
+        "start": 1,
+        "end": 861
+      }
+    ],
+    "type": "coding sequence"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "proteininfo13",
+  "source_id": "WP_000027057.1",
+  "name": "broad-spectrum class A beta-lactamase TEM-1",
+  "sequence": "MSIQHFRVALIPFFAAFCLPVFAHPETLVKVKDAEDQLGARVGYIELDLNSGKILESFRPEERFPMMSTFKVLLCGAVLSRVDAGQEQLGRRIHYSQNDLVEYSPVTEKHLTDGMTVRELCSAAITMSDNTAANLLLTTIGGPKELTAFLHNMGDHVTRLDRWEPELNEAIPNDERDTTMPAAMATTLRKLLTGELLTLASRQQLIDWMEADKVAGPLLRSALPAGWFIADKSGAGERGSRGIIAALGPDGKPSRIVVIYTTGSQATMDERNRQIAEIGASLIKHW",
+  "organism": {
+    "id": "organism43",
+    "name": "Bacteria",
+    "taxonomy_id": "2",
+    "species": "Bacteria"
+  },
+  "regions": [
+    {
+      "id": "proteinregion13",
+      "name": "PRK15442",
+      "spans": [
+        {
+          "id": "span24",
+          "start": 2,
+          "end": 286
+        }
+      ],
+      "note": "beta-lactamase TEM; Provisional",
+      "cross_reference": "CDD:185339"
+    }
+  ],
+  "ec_number": "3.5.2.6",
+  "mol_weight": 31384.0
+}

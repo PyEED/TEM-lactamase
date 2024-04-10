@@ -1,0 +1,29 @@
+{
+  "id": "proteininfo20",
+  "source_id": "HAU6937112.1",
+  "name": "TEM family class A beta-lactamase",
+  "sequence": "MSIQHFRFALIPFFAAFCLPVFAHPETLVKVKDAEDQLGARVGYIELDLNSGKILESFRPEERFPMMSTFKVLLCGAVLSRVDAGQEQLGRRIHYSQNDLVEYSPVTEKHLTDGMTVRELCSAAITMSDNTAANLLLTTIGGPKELTAFLHNMGDHVTRLDRWEPELNEAIPNDERDTTMPAAMATTLRKLLTGELLTLASRQQLIDWMEADKVAGPLLRSALPAGWFIADKSGAGERGSRGIIAALGPDGKPSRIVVIYTTGSQATMDERNRQIAEIGASLIKHW",
+  "organism": {
+    "id": "organism40",
+    "name": "Salmonella enterica subsp. enterica serovar Ohio",
+    "taxonomy_id": "117541",
+    "domain": "Bacteria",
+    "phylum": "Pseudomonadota",
+    "tax_class": "Gammaproteobacteria",
+    "order": "Enterobacterales",
+    "family": "Enterobacteriaceae",
+    "genus": "Salmonella",
+    "species": "Salmonella enterica"
+  },
+  "coding_sequence_ref": {
+    "id": "DACYET010000050.1",
+    "spans": [
+      {
+        "id": "span36",
+        "start": 20,
+        "end": 880
+      }
+    ],
+    "type": "coding sequence"
+  }
+}

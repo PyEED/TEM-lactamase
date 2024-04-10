@@ -1,0 +1,44 @@
+{
+  "id": "proteininfo6",
+  "source_id": "AQZ26952.1",
+  "name": "beta lactamase TEM-1",
+  "sequence": "MSISHFRVALIPFFAAFCLPVFAHPETLVKVKDAEDQLGARVGYIELDLNSGKILESFRPEERFPMMSTFKVLLCGAVLSRVDAGQEQLGRRIHYSQNDLVEYSPVTEKHLTDGMTVRELCSAAITMSDNTAANLLLTTIGGPKELTAFLHNMGDHVTRLDRWEPELNEAIPNDERDTTMPAAMATTLRKLLTGELLTLASRQQLIDWMEADKVAGPLLRSALPAGWFIADKSGAGERGSRGIIAALGPDGKPSRIVVIYTTGSQATMDERNRQIAEIGASLIKHW",
+  "organism": {
+    "id": "organism36",
+    "name": "Shigella sonnei",
+    "taxonomy_id": "624",
+    "domain": "Bacteria",
+    "phylum": "Pseudomonadota",
+    "tax_class": "Gammaproteobacteria",
+    "order": "Enterobacterales",
+    "family": "Enterobacteriaceae",
+    "genus": "Shigella",
+    "species": "Shigella sonnei"
+  },
+  "regions": [
+    {
+      "id": "proteinregion6",
+      "name": "PRK15442",
+      "spans": [
+        {
+          "id": "span11",
+          "start": 2,
+          "end": 286
+        }
+      ],
+      "note": "beta-lactamase TEM; Provisional",
+      "cross_reference": "CDD:185339"
+    }
+  ],
+  "coding_sequence_ref": {
+    "id": "KY574611.1",
+    "spans": [
+      {
+        "id": "span12",
+        "start": 1,
+        "end": 861
+      }
+    ],
+    "type": "coding sequence"
+  }
+}
