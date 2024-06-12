@@ -10,3 +10,7 @@
 - [ ] Filtern der "TEM domain": identische Sequenzen entfernen; Auswahl: die Sequenz behalten, deren TEM-number bekannt ist
 - [ ] Multiple pairwise alignment der "TEM domain", Ermittelung der Anzahl der Aminosäureaustausche zwischen den Sequenzen
 - [ ] Netzwerk: edge = 1 Aminosäureaustausch, labeling mit TEM-number 
+
+
+enroot import docker://haeussma/pyeed-notebook:latest
+enroot create --name haeussma+pyeed-notebook+latest+new haeussma+pyeed-notebook+latest.sqsh
