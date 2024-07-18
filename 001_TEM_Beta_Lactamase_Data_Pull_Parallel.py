@@ -7,7 +7,7 @@ import sys
 from pyeed.core import ProteinRecord
 from concurrent.futures import ThreadPoolExecutor
 
-sys.setrecursionlimit(25000)
+sys.setrecursionlimit(250000)
 
 # read in the text file
 file_path = 'TEM_Ids.txt'
