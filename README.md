@@ -18,8 +18,8 @@ This is the docker container in which data will be saved:
 docker run -it --name pyeed-neo4j-niklas-tem \
   --user="$(id -u):$(id -g)" \
   -e NEO4J_AUTH=neo4j/12345678900 \
-  -p 7474:7474 \
-  -p 7687:7687 \
+  -p 7479:7474 \
+  -p 7689:7687 \
   -e NEO4J_PLUGINS='["graph-data-science", "apoc"]' \
   -e NEO4J_dbms_security_procedures_unrestricted="gds.*,apoc.*,gds.util.*" \
   -d neo4j:latest
