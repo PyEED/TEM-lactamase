@@ -11,6 +11,17 @@
 - [ ] Multiple pairwise alignment der "TEM domain", Ermittelung der Anzahl der Aminosäureaustausche zwischen den Sequenzen
 - [ ] Netzwerk: edge = 1 Aminosäureaustausch, labeling mit TEM-number 
 
+### SetUp with Neo4J
 
-enroot import docker://haeussma/pyeed-notebook:latest
-enroot create --name haeussma+pyeed-notebook+latest+new haeussma+pyeed-notebook+latest.sqsh
+This is the docker container in which data will be saved:
+```
+docker run -it --name pyeed-neo4j-niklas-tem \
+  --user="$(id -u):$(id -g)" \
+  -e NEO4J_AUTH=neo4j/12345678900 \
+  -p 7479:7474 \
+  -p 7689:7687 \
+  -e NEO4J_PLUGINS='["graph-data-science", "apoc"]' \
+  -e NEO4J_dbms_security_procedures_unrestricted="gds.*,apoc.*,gds.util.*" \
+  -d neo4j:latest
+```
+
