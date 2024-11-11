@@ -5,7 +5,8 @@ logs/
 data/
 /data/
 
-
+*.jar
+plugins/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
