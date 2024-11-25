@@ -6,6 +6,7 @@ from venv import logger
 
 from pyeed.main import Pyeed
 from pyeed.analysis.standard_numbering import StandardNumberingTool
+from pyeed.analysis.sequence_alignment import PairwiseAligner
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 LOGGER = logging.getLogger(__name__)
@@ -95,7 +96,11 @@ def run_work_flow(eedb):
     eedb.fetch_dna_entries_for_proteins()
 
     standard_numbering = StandardNumberingTool(name="test_standard_numbering")
-    standard_numbering.set_standard_numbering_with_given_base_sequence_clustalo(base_sequence_id='AAL29438.1', db=eedb.db)
+    standard_numbering.apply_standard_numbering(base_sequence_id='AAL29438.1', db=eedb.db)
+
+    # Align the sequences
+    aligner = PairwiseAligner()
+    aligner.align_multipairwise(db=eedb.db, ids=ids)
 
 
 if __name__ == "__main__":
