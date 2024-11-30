@@ -1,0 +1,5 @@
+MATCH (p:Protein {accession_id: 'AAP20891.1'})-[rel*1..2]-(c)
+WHERE NOT EXISTS {
+  MATCH (p)-[excludeRel:PAIRWISE_ALIGNED*1..2]-(c)
+}
+RETURN p, c
