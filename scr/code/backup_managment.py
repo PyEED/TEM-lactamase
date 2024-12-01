@@ -1,8 +1,6 @@
 import os
-import requests
 import subprocess
 from datetime import datetime
-from neo4j import GraphDatabase
 
 # Neo4j Connection Info
 URI = "http://localhost:8123"
@@ -82,7 +80,7 @@ def restore_neo4j(backup_file):
 if __name__ == "__main__":
 
 
-    # backup_neo4j()
+    backup_neo4j()
 
     # Restore backup file is /mnt/nab/backups/TEM_Development/neo4j_backup_20241130_100940.dump
-    restore_neo4j("/mnt/nab/backups/TEM_Development/neo4j_backup_20241130_100940.dump")
+    # restore_neo4j("/mnt/nab/backups/TEM_Development/neo4j_backup_20241130_100940.dump")
