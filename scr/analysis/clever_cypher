@@ -10,3 +10,9 @@ WHERE NOT EXISTS {
   MATCH (p)-[excludeRel:PAIRWISE_ALIGNED*1..2]-(c)
 }
 RETURN p, c LIMIT 20
+
+
+MATCH (s:StandardNumbering)-[rel*1..2]-(c)
+WHERE ALL(r IN rel WHERE type(r) <> 'PAIRWISE_ALIGNED')
+RETURN s, c
+LIMIT 30
