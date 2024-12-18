@@ -21,3 +21,23 @@ MATCH (p:Protein)-[r:HAS_MUTATION]-(c:Protein) RETURN p, c LIMIT 200
 MATCH (p:Protein)-[r:HAS_MUTATION]-(c:Protein) DELETE r
 MATCH (p:Protein)-[r:PAIRWISE_ALIGNED]-(c:Protein) RETURN p, c LIMIT 5
 MATCH (p:Protein)-[r:PAIRWISE_ALIGNED]-(c:Protein) DELETE r
+
+MATCH (p:Protein {accession_id: 'AAP20891.1'})-[*1..1]-(c:Protein {accession_id: 'AAM52207.1'}) RETURN p, c
+
+------------------------------------------------------------------------------------------------------------------------------
+MATCH (p1:Protein)-[r:HAS_MUTATION]->(p2:Protein)
+WITH p1, p2, r.from_position AS fromPos, r.to_position AS toPos, 
+     r.from_monomer AS fromMono, r.to_monomer AS toMono, COUNT(r) AS relCount
+WHERE relCount > 1
+RETURN p1.accession_id AS Protein1_ID, 
+       p2.accession_id AS Protein2_ID, 
+       fromPos, toPos, fromMono, toMono, 
+       relCount AS DuplicateCount
+ORDER BY DuplicateCount DESC
+------------------------------------------------------------------------------------------------------------------------------
+MATCH (p1:Protein {accession_id: 'AAP20891.1'})-[r:HAS_MUTATION]->(p2:Protein {accession_id: 'AAM52207.1'})
+WITH p1, p2, r.from_position AS fromPos, r.to_position AS toPos, 
+     r.from_monomer AS fromMono, r.to_monomer AS toMono, COLLECT(r) AS relationships
+WHERE SIZE(relationships) > 1
+FOREACH (rel IN relationships[1..] | DELETE rel)
+------------------------------------------------------------------------------------------------------------------------------
