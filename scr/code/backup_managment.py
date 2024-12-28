@@ -3,14 +3,14 @@ import subprocess
 from datetime import datetime
 
 # Neo4j Connection Info
-URI = "http://localhost:8123"
+URI = "http://localhost:1123"
 USER = "neo4j"
-PASSWORD = "niklasniklaspwtem"
-CONTAINER_NAME = "pyeed-neo4j-tem"
+PASSWORD = "niklasonlytems"
+CONTAINER_NAME = "neo4j-niklas-just-tems"
 
 # Backup directory
 BACKUP_DIR = "/mnt/nab/backups/TEM_Development"
-IMPORT_DIR = "/home/nab/Niklas/TEM-lactamase/Docker/NiklasTEM/import"
+IMPORT_DIR = "/home/nab/Niklas/TEM-lactamase/Docker/NiklasOnlyTEMs/import"
 
 def run_command(command):
     """Run a shell command and handle errors."""
@@ -83,4 +83,4 @@ if __name__ == "__main__":
     backup_neo4j()
 
     # Restore backup file is /mnt/nab/backups/TEM_Development/neo4j_backup_20241130_100940.dump
-    # restore_neo4j("/mnt/nab/backups/TEM_Development/neo4j_backup_20241130_100940.dump")
+    # restore_neo4j("/mnt/nab/backups/TEM_Development/neo4j_backup_20241219_133125.dump")
