@@ -1,7 +1,7 @@
-sudo docker stop pyeed-neo4j-niklas
-sudo docker remove pyeed-neo4j-niklas
-sudo docker build --no-cache -t pyeed-neo4j-niklas .
-sudo docker run -d --name pyeed-neo4j-niklas \
+sudo docker stop neo4j-niklas-playground
+sudo docker remove neo4j-niklas-playground
+sudo docker build --no-cache -t neo4j-niklas-playground .
+sudo docker run -d --name neo4j-niklas-playground \
   --user="$(id -u):$(id -g)" \
   -e NEO4J_AUTH=neo4j/12345678 \
   -e NEO4J_ACCEPT_LICENSE_AGREEMENT="yes" \
@@ -13,4 +13,4 @@ sudo docker run -d --name pyeed-neo4j-niklas \
   -p 7687:7687 \
   -v $(pwd)/data:/data \
   -v $(pwd)/import:/import \
-  neo4j:latest
+  my-neo4j:latest
