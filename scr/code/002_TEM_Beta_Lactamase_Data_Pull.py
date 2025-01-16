@@ -25,7 +25,6 @@ LOGGER = logging.getLogger(__name__)
 uri = "bolt://127.0.0.1:8123"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
-eedb.db.wipe_database(date='2025-01-13')
 eedb.db.initialize_db_constraints(user, password)
 blast = Blast()
 
@@ -60,7 +59,8 @@ def run_blast_and_fetch_data_proteins(id, path_to_data_blast, path_to_data_backu
     
     try:
         # try getting all of the ids in the neo4j
-        eedb.fetch_from_primary_db(df_blast['Subject ID'].tolist(), db='ncbi_protein')
+        # eedb.fetch_from_primary_db(df_blast['Subject ID'].tolist(), db='ncbi_protein')
+        None
 
     except Exception as e:
         LOGGER.error(f"Error fetching data for {id}: {e}")
@@ -91,6 +91,13 @@ if __name__ == "__main__":
     
 
     for id in df['protein_id_database'].tolist():
+
+        # checkout if the id is already been blasted
+        path_previous_blast = f'/home/nab/Niklas/TEM-lactamase/data/003_data_pull/blast_data/2025-01-13_15-26-42/{id}.csv'
+        if os.path.exists(path_previous_blast):
+            print(f"Skipping {id} because it has already been blasted")
+            continue
+
         # skip if is nan
         if pd.isna(id):
             continue
@@ -100,3 +107,4 @@ if __name__ == "__main__":
 
 
 
+# nohup python 002_TEM_Beta_Lactamase_Data_Pull.py > output.log 2>&1 &

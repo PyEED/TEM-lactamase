@@ -3,10 +3,10 @@ import subprocess
 from datetime import datetime
 
 # Neo4j Connection Info
-URI = "http://localhost:1123"
+URI = "http://localhost:2124"
 USER = "neo4j"
-PASSWORD = "niklasonlytems"
-CONTAINER_NAME = "neo4j-niklas-just-tems"
+PASSWORD = "1234567890"
+CONTAINER_NAME = "neo4j-niklas-tem-main"
 
 # Backup directory
 BACKUP_DIR = "/mnt/nab/backups/TEM_Development"
