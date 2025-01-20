@@ -2,24 +2,35 @@ import os
 import subprocess
 from datetime import datetime
 
+from dotenv import load_dotenv
+
 # Neo4j Connection Info
-URI = "http://localhost:2124"
+URI = "http://localhost:8124"
 USER = "neo4j"
-PASSWORD = "1234567890"
-CONTAINER_NAME = "neo4j-niklas-tem-main"
+CONTAINER_NAME = "neo4j-niklas-tem"
+
+load_dotenv()
+PASSWORD = os.getenv("NEO4J_NIKLAS_TEM")
+if PASSWORD is None:
+    raise ValueError("KEY is not set in the .env file.")
+
 
 # Backup directory
 BACKUP_DIR = "/mnt/nab/backups/TEM_Development"
-IMPORT_DIR = "/home/nab/Niklas/TEM-lactamase/Docker/NiklasOnlyTEMs/import"
+IMPORT_DIR = "/mnt/nab/NiklasTEM/import"
+
 
 def run_command(command):
     """Run a shell command and handle errors."""
     try:
-        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+        result = subprocess.run(
+            command, shell=True, check=True, capture_output=True, text=True
+        )
         print(result.stdout)
     except subprocess.CalledProcessError as e:
         print(f"Error: {e.stderr}")
         raise
+
 
 def backup_neo4j():
     """
@@ -49,6 +60,7 @@ def backup_neo4j():
 
     print(f"Backup saved to: {backup_file}")
 
+
 def restore_neo4j(backup_file):
     """
     Restore a Neo4j database from a backup.
@@ -56,7 +68,7 @@ def restore_neo4j(backup_file):
 
     if not os.path.exists(backup_file):
         raise FileNotFoundError(f"Backup file not found: {backup_file}")
-    
+
     print("Stopping Neo4j container...")
     run_command(f"sudo docker stop {CONTAINER_NAME}")
 
@@ -71,15 +83,12 @@ def restore_neo4j(backup_file):
     run_command(command)
 
     print("Restarting Neo4j container...")
-    
+
     run_command(f"sudo docker start {CONTAINER_NAME}")
     print("Restore complete.")
 
 
-
 if __name__ == "__main__":
-
-
     backup_neo4j()
 
     # Restore backup file is /mnt/nab/backups/TEM_Development/neo4j_backup_20241130_100940.dump
