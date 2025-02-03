@@ -25,7 +25,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://127.0.0.1:8123"
+uri = "bolt://129.69.129.130:8123"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
@@ -77,11 +77,13 @@ if __name__ == "__main__":
     embedding = np.array(embedding[0]["p.embedding"])
     print(f"Embedding: {embedding.shape}")
 
-    results = et.find_closest_matches_simple(
-        start_sequence_id=protein_ids[0]["p.accession_id"],
+    results = et.find_similar_proteins_batched(
+        query_sequence_id=protein_ids[index]["p.accession_id"],
         db=eedb.db,
         metric="cosine",
         n=10,
+        batch_size=100,
+        n_workers=10,
     )
 
     print(results)

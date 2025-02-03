@@ -23,7 +23,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://127.0.0.1:8123"
+uri = "bolt://129.69.129.130:8123"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
@@ -33,4 +33,4 @@ eedb.db.initialize_db_constraints(user, password)
 
 if __name__ == "__main__":
     # calulcate the sequence embeddings on ems-c
-    eedb.calculate_sequence_embeddings(model_name="esmc_300m")
+    eedb.calculate_sequence_embeddings(model_name="esmc_300m", batch_size=250)

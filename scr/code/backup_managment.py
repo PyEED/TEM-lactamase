@@ -5,19 +5,19 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 # Neo4j Connection Info
-URI = "http://localhost:8124"
+URI = "http://129.69.129.130:8124"
 USER = "neo4j"
 CONTAINER_NAME = "neo4j-niklas-tem"
 
 load_dotenv()
-PASSWORD = os.getenv("NEO4J_NIKLAS_TEM")
+PASSWORD = os.getenv("NEO4J_NIKLAS_TEM_HARRY")
 if PASSWORD is None:
     raise ValueError("KEY is not set in the .env file.")
 
 
 # Backup directory
-BACKUP_DIR = "/mnt/nab/backups/TEM_Development"
-IMPORT_DIR = "/mnt/nab/NiklasTEM/import"
+BACKUP_DIR = "/home/nab/Niklas/DockerShare/DockerTem/backups"
+IMPORT_DIR = "/home/nab/Niklas/DockerShare/DockerTem/import"
 
 
 def run_command(command):

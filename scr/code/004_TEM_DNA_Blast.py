@@ -23,18 +23,25 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://127.0.0.1:8123"
+uri = "bolt://129.69.129.130:8123"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
-blast = Blast()
 
 path_to_data = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull"
 path_to_data_blast_dna = (
     "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/blast_data_dna"
 )
 path_to_data_backup = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/backup_data"
-path_to_db_blast = "/blast/db/custom/nt_new/nt"
+path_to_db_blast = "/blast/db/custom/nt"
+
+blast = Blast(
+    mode="blastn",
+    db_path=path_to_db_blast,
+    db_name="nt",
+    evalue=0.001,
+    max_target_seqs=5000,
+)
 
 # ------------------------------------- FUNCTIONS -------------------------------------
 
@@ -47,15 +54,30 @@ def run_blast_and_fetch_data_dnas(id, path_to_data_blast_dna):
     eedb.fetch_from_primary_db(id, db="ncbi_nucleotide")
 
     try:
-        df_blast = blast.blastn(
-            id,
-            db=path_to_db_blast,
-            dbConnector=eedb.db,
-            evalue=0.001,
-            outfmt=10,
-            num_threads=40,
-            max_target_seqs=5000,
+        """
+        new usage of blast
+
+        blast = Blast(
+            mode="blastp",  # Use blastp for protein sequences
+            db_path="/usr/local/bin/data/test_db/",  # Path in Docker container
+            db_name="protein_db",  # Name of your BLAST database
+            evalue=0.1,  # E-value threshold
+            max_target_seqs=10,  # Maximum number of hits to return
         )
+
+        # Perform search
+        results = blast.search(sequence)
+        """
+
+        query_sequence = f"""
+            MATCH (d:DNA) WHERE d.accession_id = "{id}"
+            RETURN d.sequence
+        """
+
+        sequence = eedb.db.execute_read(query_sequence)
+
+        df_blast = blast.search(sequence)
+
         print(df_blast.head())
         df_blast.to_csv(f"{path_to_data_blast_dna}/{id}.csv", index=False)
     except Exception as e:
@@ -91,6 +113,7 @@ if __name__ == "__main__":
         id_clean = id["d.accession_id"]
         print(f"Blasting {id_clean}")
         run_blast_and_fetch_data_dnas(id_clean, path_to_data_blast_dna)
+        break
 
 
 # nohup python 004_TEM_DNA_Blast.py > output.log 2>&1 &
