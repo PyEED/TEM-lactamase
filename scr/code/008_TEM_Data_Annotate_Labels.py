@@ -75,6 +75,7 @@ if __name__ == "__main__":
     print(f"Head of df_tem_lactamase: {df_tem_lactamase.head()}")
     print(f"Shape of df_tem_lactamase: {df_tem_lactamase.shape}")
 
+    """
     # identify all unique ids in the df_blast_protein dataframe
     # add to all of them the label "Source" with the value "BLAST_Protein"
     unique_ids_blast_protein = df_blast_protein["Subject ID"].unique()
@@ -88,7 +89,6 @@ if __name__ == "__main__":
     # identify all unique ids in the df_tem_lactamase dataframe
     # add to all of them the label "Source" with the value "ELBD"
     unique_ids_elbd = df_tem_lactamase["protein_id_database"].unique()
-
     for id in unique_ids_elbd:
         # print(f"Annotating protein {id} with Source ELBD")
         label_node("Protein", id, "ELBD", "Source")
@@ -106,9 +106,7 @@ if __name__ == "__main__":
     # add to all of them the label "Source" with the value "DNA_Connection"
 
     # all proteins in the database
-    query_all_proteins = """
-    MATCH (p:Protein) RETURN p.accession_id
-    """
+    query_all_proteins = "MATCH (p:Protein) RETURN p.accession_id"
     all_proteins = eedb.db.execute_read(query_all_proteins)
     all_proteins = [item["p.accession_id"] for item in all_proteins]
 
@@ -126,3 +124,12 @@ if __name__ == "__main__":
     LOGGER.info(
         f"Annotated {len(proteins_to_annotate)} proteins with Source DNA_Connection"
     )
+    """
+
+    # identify all unique ids in the df_blast_dna dataframe
+    # add to all of them the label "Source" with the value "BLAST_DNA"
+    unique_ids_blast_dna = df_blast_dna["Subject ID"].unique()
+    for id in unique_ids_blast_dna:
+        # print(f"Annotating protein {id} with Source BLAST_DNA")
+        label_node("DNA", id, "BLAST_DNA", "Source")
+    LOGGER.info(f"Annotated {len(unique_ids_blast_dna)} proteins with Source BLAST_DNA")

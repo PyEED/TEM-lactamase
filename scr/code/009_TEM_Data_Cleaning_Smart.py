@@ -2,7 +2,6 @@
 import logging
 import os
 
-import numpy as np
 from dotenv import load_dotenv
 from pyeed import Pyeed
 from pyeed.analysis.embedding_analysis import EmbeddingTool
@@ -36,6 +35,25 @@ et = EmbeddingTool()
 # ------------------------------------- FUNCTIONS -------------------------------------
 
 
+def label_node(node_type, node_id, node_label, label_type):
+    """
+    Label a node in the Neo4j database.
+    The node type is the type of the node to be labeled. Could be Protein, DNA
+    The node id is the id of the node to be labeled. Most likely a accession_id
+    The node label is the label of the node to be labeled. Could be DNA_Blast, Protein_Blast, Protein_Bldb
+    The label_type is the type of label to be added. Could be "Source", "TEM_Type", "Resistance_Mechanism", "Species"
+
+    The label is an attribute of the node.
+    """
+
+    query = f"""
+    MATCH (n:{node_type} {{accession_id: "{node_id}"}})
+    SET n.{label_type} = "{node_label}"
+    """
+
+    eedb.db.execute_write(query)
+
+
 if __name__ == "__main__":
     # here we are intrested in starting a data cleaning
 
@@ -43,56 +61,32 @@ if __name__ == "__main__":
 
     # we get all of the portein_ids
     query_protein_ids = """
-        MATCH (p:Protein) RETURN p.accession_id
+        MATCH (p:Protein) WHERE p.Source = "BLAST_Protein" RETURN p.accession_id
     """
     protein_ids = eedb.db.execute_read(query_protein_ids)
+    protein_ids = [protein_id["p.accession_id"] for protein_id in protein_ids]
     print(f"Number of proteins: {len(protein_ids)}")
 
-    index = 0
+    et.drop_vector_index(index_name="vector_index_Protein_embedding", db=eedb.db)
 
-    print(f"Index {index} protein id: {protein_ids[index]}")
-
-    # we check if the index protein has an embedding otherwise we keep searching for a index where there is an embedding
-    query_embedding_exists = """
-        MATCH (p:Protein {accession_id: $protein_id}) RETURN p.embedding IS NOT NULL
-    """
-    embedding_exists = eedb.db.execute_read(
-        query_embedding_exists,
-        parameters={"protein_id": protein_ids[index]["p.accession_id"]},
-    )
-
-    if embedding_exists[0]["p.embedding IS NOT NULL"]:
-        print(f"Embedding exists for index {index}")
-    else:
-        print(f"Embedding does not exist for index {index}")
-
-    # get the embedding of index as a numpy array
-    query_embedding = """
-        MATCH (p:Protein {accession_id: $protein_id}) RETURN p.embedding
-    """
-    embedding = eedb.db.execute_read(
-        query_embedding,
-        parameters={"protein_id": protein_ids[index]["p.accession_id"]},
-    )
-
-    embedding = np.array(embedding[0]["p.embedding"])
-    print(f"Embedding: {embedding.shape}")
-
-    results = et.find_similar_proteins_batched(
-        query_sequence_id=protein_ids[index]["p.accession_id"],
+    et.create_embedding_vector_index_neo4j(
+        index_name="vector_index_Protein_embedding",
         db=eedb.db,
-        metric="cosine",
-        n=10,
-        batch_size=250,
-        n_workers=10,
+        similarity_function="cosine",
+        m=48,
+        ef_construction=300,
+        dimensions=960,
     )
-    """
-    results = et.find_closest_matches_simple(
-        start_sequence_id=protein_ids[index]["p.accession_id"],
-        db=eedb.db,
-        metric="cosine",
-        n=10,
-    )
-    """
 
-    print(results)
+    for index in range(0, len(protein_ids)):
+        # print(f"Index {index} protein id: {protein_ids[index]}")
+
+        results = et.find_nearest_neighbors_based_on_vector_index(
+            index_name="vector_index_Protein_embedding",
+            query_protein_id=protein_ids[index],
+            number_of_neighbors=10,
+            db=eedb.db,
+        )
+        if results[0][1] == 1.0:
+            print(f"Found one that is identical to {protein_ids[index]}")
+            print(results)

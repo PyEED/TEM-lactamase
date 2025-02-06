@@ -13,7 +13,7 @@ path_to_data_blast = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/blast_da
 
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM")
+password = os.getenv("NEO4J_NIKLAS_TEM_HARRY")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
@@ -24,7 +24,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://127.0.0.1:8123"
+uri = "bolt://129.69.129.130:4123"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
@@ -60,11 +60,21 @@ if __name__ == "__main__":
     # how many unique subject id are there?
     unique_subject_ids = df["Subject ID"].unique()
     print(f"Number of unique subject ids: {len(unique_subject_ids)}")
-
     for batch in range(0, len(unique_subject_ids), 500):
-        batch_ids = unique_subject_ids[batch : batch + 500].tolist()
+        try:
+            batch_ids = unique_subject_ids[batch : batch + 500].tolist()
 
-        # remove the ids KX830961
-        batch_ids = [id for id in batch_ids if id != "KX830961"]
+            # remove the ids KX830961
+            batch_ids = [
+                id
+                for id in batch_ids
+                if id != "KX830961"
+                and id != "CP000649.1"
+                and id != "D00946.1"
+                and id != "NG_050226.1"
+            ]
 
-        eedb.fetch_from_primary_db(ids=batch_ids, db="ncbi_nucleotide")
+            eedb.fetch_from_primary_db(ids=batch_ids, db="ncbi_nucleotide")
+        except Exception as e:
+            LOGGER.error(f"Error processing batch {batch}: {str(e)}")
+            continue
