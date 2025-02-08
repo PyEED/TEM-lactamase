@@ -11,6 +11,7 @@ sudo docker run -d --name neo4j-niklas-playground \
   -e NEO4J_dbms_security_procedures_allowlist='["n10s.*", "apoc.*"]' \
   -p 7474:7474 \
   -p 7687:7687 \
-  -v $(pwd)/data:/data \
-  -v $(pwd)/import:/import \
+  -v /home/nab/Niklas/DockerShare/DockerPlayground/data:/data \
+  -v /home/nab/Niklas/DockerShare/DockerPlayground/import:/import \
+  -v /home/nab/Niklas/DockerShare/DockerPlayground/plugins:/plugins \
   my-neo4j:latest

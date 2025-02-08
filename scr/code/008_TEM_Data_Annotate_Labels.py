@@ -75,7 +75,6 @@ if __name__ == "__main__":
     print(f"Head of df_tem_lactamase: {df_tem_lactamase.head()}")
     print(f"Shape of df_tem_lactamase: {df_tem_lactamase.shape}")
 
-    """
     # identify all unique ids in the df_blast_protein dataframe
     # add to all of them the label "Source" with the value "BLAST_Protein"
     unique_ids_blast_protein = df_blast_protein["Subject ID"].unique()
@@ -124,7 +123,6 @@ if __name__ == "__main__":
     LOGGER.info(
         f"Annotated {len(proteins_to_annotate)} proteins with Source DNA_Connection"
     )
-    """
 
     # identify all unique ids in the df_blast_dna dataframe
     # add to all of them the label "Source" with the value "BLAST_DNA"
