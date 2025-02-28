@@ -1,4 +1,5 @@
 # ------------------------------------- IMPORTING PACKAGES -------------------------------------
+import concurrent.futures
 import logging
 import os
 
@@ -9,12 +10,12 @@ from pyeed.analysis.embedding_analysis import EmbeddingTool
 
 # ------------------------------------- SETUP -------------------------------------
 
-
 path_to_data_blast_dna = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/blast_data_dna/2025-01-19_12-37-48"
 path_to_data_blast_protein = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/blast_data/combined_data_blast_5000_tem_209"
 path_to_TEM_lactamase = (
     "/home/nab/Niklas/TEM-lactamase/data/002_combined_data/TEM_lactamase.csv"
 )
+file_path_index = "/home/nab/Niklas/TEM-lactamase/CARD_Data_Data/aro_index.tsv"
 
 
 load_dotenv()
@@ -22,12 +23,10 @@ password = os.getenv("NEO4J_NIKLAS_TEM_CLEAN")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
-
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 LOGGER = logging.getLogger(__name__)
-
 
 uri = "bolt://129.69.129.130:2123"
 user = "neo4j"
@@ -46,20 +45,42 @@ def label_node(node_type, node_id, node_label, label_type):
     The node id is the id of the node to be labeled. Most likely a accession_id
     The node label is the label of the node to be labeled. Could be DNA_Blast, Protein_Blast, Protein_Bldb
     The label_type is the type of label to be added. Could be "Source", "TEM_Type", "Resistance_Mechanism", "Species"
-
     The label is an attribute of the node.
     """
-
     query = f"""
     MATCH (n:{node_type} {{accession_id: "{node_id}"}})
     SET n.{label_type} = "{node_label}"
     """
-
     eedb.db.execute_write(query)
 
 
+def parallel_label_nodes(node_type, ids, node_label, label_type, max_workers=10):
+    """
+    Process labeling tasks in parallel using ThreadPoolExecutor.
+
+    Parameters:
+      node_type (str): the type of the node, e.g. "Protein" or "DNA"
+      ids (iterable): iterable of node IDs to annotate
+      node_label (str): the label value to set
+      label_type (str): the field/property to set on the node
+      max_workers (int): number of concurrent workers.
+    """
+    futures_to_id = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        for _id in ids:
+            futures_to_id[
+                executor.submit(label_node, node_type, _id, node_label, label_type)
+            ] = _id
+        for future in concurrent.futures.as_completed(futures_to_id):
+            _id = futures_to_id[future]
+            try:
+                future.result()
+            except Exception as e:
+                LOGGER.error(f"Error labeling {node_type} with id {_id}: {e}")
+
+
 if __name__ == "__main__":
-    # read in the two dataframes form the blast searches
+    # read in the two dataframes from the blast searches
     df_blast_dna = pd.read_csv(
         os.path.join(path_to_data_blast_dna, "combined_data_blast_5000_dna_tem_209.csv")
     )
@@ -76,58 +97,53 @@ if __name__ == "__main__":
     print(f"Shape of df_tem_lactamase: {df_tem_lactamase.shape}")
 
     # identify all unique ids in the df_blast_protein dataframe
-    # add to all of them the label "Source" with the value "BLAST_Protein"
     unique_ids_blast_protein = df_blast_protein["Subject ID"].unique()
-    for id in unique_ids_blast_protein:
-        # print(f"Annotating protein {id} with Source BLAST_Protein")
-        label_node("Protein", id, "BLAST_Protein", "Source")
+    # Annotate proteins with BLAST_Protein label in parallel
+    parallel_label_nodes("Protein", unique_ids_blast_protein, "BLAST_Protein", "Source")
     LOGGER.info(
         f"Annotated {len(unique_ids_blast_protein)} proteins with Source BLAST_Protein"
     )
 
+    # identify all the ids in the CARD index file
+    df_card = pd.read_csv(file_path_index, sep="\t")
+    df_card = df_card.dropna(subset=["Protein Accession"])
+    unique_ids_card = df_card["Protein Accession"].unique()
+    # Annotate proteins with CARD label in parallel
+    parallel_label_nodes("Protein", unique_ids_card, "CARD", "Source")
+    LOGGER.info(f"Annotated {len(unique_ids_card)} proteins with Source CARD")
+
     # identify all unique ids in the df_tem_lactamase dataframe
-    # add to all of them the label "Source" with the value "ELBD"
     unique_ids_elbd = df_tem_lactamase["protein_id_database"].unique()
-    for id in unique_ids_elbd:
-        # print(f"Annotating protein {id} with Source ELBD")
-        label_node("Protein", id, "ELBD", "Source")
+    # Annotate proteins with ELBD label in parallel
+    parallel_label_nodes("Protein", unique_ids_elbd, "ELBD", "Source")
     LOGGER.info(f"Annotated {len(unique_ids_elbd)} proteins with Source ELBD")
+
     # identify all unique ids in the df_blast_dna dataframe
-    # add to all of them the label "Source" with the value "BLAST_DNA"
     unique_ids_blast_dna = df_blast_dna["Subject ID"].unique()
-    for id in unique_ids_blast_dna:
-        # print(f"Annotating protein {id} with Source BLAST_DNA")
-        label_node("DNA", id, "BLAST_DNA", "Source")
-    LOGGER.info(f"Annotated {len(unique_ids_blast_dna)} proteins with Source BLAST_DNA")
+    # Annotate DNA nodes with BLAST_DNA label in parallel
+    parallel_label_nodes("DNA", unique_ids_blast_dna, "BLAST_DNA", "Source")
+    LOGGER.info(
+        f"Annotated {len(unique_ids_blast_dna)} DNA nodes with Source BLAST_DNA"
+    )
 
     # identify all proteins that are not in the df_blast_protein dataframe or df_tem_lactamase dataframe
-    # they where then added to the database via a DNA Connection
-    # add to all of them the label "Source" with the value "DNA_Connection"
-
-    # all proteins in the database
     query_all_proteins = "MATCH (p:Protein) RETURN p.accession_id"
     all_proteins = eedb.db.execute_read(query_all_proteins)
     all_proteins = [item["p.accession_id"] for item in all_proteins]
 
-    # exclude the proteins that are in the df_blast_protein or df_tem_lactamase dataframe
     proteins_to_annotate = [
         id
         for id in all_proteins
         if id not in unique_ids_blast_protein and id not in unique_ids_elbd
     ]
-
-    for id in proteins_to_annotate:
-        # print(f"Annotating protein {id} with Source DNA_Connection")
-        label_node("Protein", id, "DNA_Connection", "Source")
-
+    # Annotate these proteins with DNA_Connection label in parallel
+    parallel_label_nodes("Protein", proteins_to_annotate, "DNA_Connection", "Source")
     LOGGER.info(
         f"Annotated {len(proteins_to_annotate)} proteins with Source DNA_Connection"
     )
 
-    # identify all unique ids in the df_blast_dna dataframe
-    # add to all of them the label "Source" with the value "BLAST_DNA"
-    unique_ids_blast_dna = df_blast_dna["Subject ID"].unique()
-    for id in unique_ids_blast_dna:
-        # print(f"Annotating protein {id} with Source BLAST_DNA")
-        label_node("DNA", id, "BLAST_DNA", "Source")
-    LOGGER.info(f"Annotated {len(unique_ids_blast_dna)} proteins with Source BLAST_DNA")
+    # (Optional / duplicate) annotate all unique ids in df_blast_dna again if needed.
+    parallel_label_nodes("DNA", unique_ids_blast_dna, "BLAST_DNA", "Source")
+    LOGGER.info(
+        f"Annotated {len(unique_ids_blast_dna)} DNA nodes with Source BLAST_DNA"
+    )

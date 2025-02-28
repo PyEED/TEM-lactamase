@@ -29,7 +29,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://129.69.129.130:4123"
+uri = "bolt://129.69.129.130:2123"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
@@ -143,3 +143,6 @@ if __name__ == "__main__":
             )
 
         eedb.db.execute_write(query_dna_protein_relationship)
+
+
+# nohup python scr/code/009_TEM_Codon_DNA_to_Protein.py > output_codon_dna_to_protein.log 2>&1 &

@@ -61,7 +61,9 @@ if __name__ == "__main__":
     for batch in range(0, len(unique_subject_ids), 2000):
         batch_ids = unique_subject_ids[batch : batch + 2000].tolist()
         eedb.fetch_from_primary_db(ids=batch_ids, db="ncbi_protein")
-        eedb.fetch_dna_entries_for_proteins()
+        # eedb.fetch_dna_entries_for_proteins()
+
+    eedb.fetch_dna_entries_for_proteins()
 
 
 # nohup python scr/code/003_TEM_Understand_Blast_Protein_AND_Pull.py > output_protein_data_pull.log 2>&1 &

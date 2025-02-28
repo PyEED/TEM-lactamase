@@ -55,41 +55,38 @@ def get_all_realtiontship_for_node(node_id, node_type):
 # ---------------------- Newly Outsourced Functions ---------------------- #
 
 
-def remove_and_reassign(current_protein_id, identical_protein_id, eedb, logger):
+def remove_dna_node(dna_node_to_remove, dna_node_kept, eedb, logger):
     """
-    Remove the identical protein node and reassign all its relationships
-    to the current protein node.
-
-    Parameters:
-        current_protein_id (str): The protein ID of the node to keep.
-        identical_protein_id (str): The duplicate protein ID to be removed.
-        eedb (Pyeed): The database connection object.
-        logger (logging.Logger): Logger to record execution details.
+    Remove a DNA node and take over all the relationships of the removed one to the DNA node which is kept.
     """
-    # Retrieve all relationships of the identical protein node.
-    relationships = get_all_realtiontship_for_node(identical_protein_id, "Protein")
+    # Retrieve all relationships of the removed DNA node.
+    relationships = get_all_realtiontship_for_node(
+        dna_node_to_remove["d.accession_id"], "DNA"
+    )
 
-    # Remove the identical protein node from the database.
+    # Remove the removed DNA node from the database.
     query_remove = f"""
-        MATCH (p:Protein) WHERE p.accession_id = "{identical_protein_id}" DETACH DELETE p
+        MATCH (d:DNA) WHERE d.accession_id = "{dna_node_to_remove['d.accession_id']}" DETACH DELETE d
     """
     eedb.db.execute_write(query_remove)
-    logger.info(f"Removing {identical_protein_id} from the database")
+    logger.info(f"Removing {dna_node_to_remove['d.accession_id']} from the database")
 
-    # Recreate the removed protein's relationships, reassigning to current protein node.
+    # Recreate the removed DNA node's relationships, reassigning to current DNA node.
     for relationship in relationships:
         start_node_label = relationship["start_node_type"]
         end_node_label = relationship["end_node_type"]
 
         # Determine which side in the relationship is the deleted (identical) protein.
-        if relationship["start_node"].get("accession_id") == identical_protein_id:
-            # Removed protein is the start node.
+        if (
+            relationship["start_node"].get("accession_id")
+            == dna_node_to_remove["d.accession_id"]
+        ):
+            # Removed DNA node is the start node.
             new_start_info = {
                 "match_by": "accession",
-                "value": current_protein_id,
-                "label": "Protein",
+                "value": dna_node_kept["d.accession_id"],
+                "label": start_node_label,
             }
-            # For the partner (end node), use accession_id if available; otherwise use the internal node id.
             if "accession_id" in relationship["end_node"]:
                 new_end_info = {
                     "match_by": "accession",
@@ -102,12 +99,15 @@ def remove_and_reassign(current_protein_id, identical_protein_id, eedb, logger):
                     "value": relationship["end_node_id"],
                     "label": end_node_label,
                 }
-        elif relationship["end_node"].get("accession_id") == identical_protein_id:
-            # Removed protein is the end node.
+        elif (
+            relationship["end_node"].get("accession_id")
+            == dna_node_to_remove["d.accession_id"]
+        ):
+            # Removed DNA node is the end node.
             new_end_info = {
                 "match_by": "accession",
-                "value": current_protein_id,
-                "label": "Protein",
+                "value": dna_node_kept["d.accession_id"],
+                "label": end_node_label,
             }
             if "accession_id" in relationship["start_node"]:
                 new_start_info = {
@@ -145,7 +145,7 @@ def remove_and_reassign(current_protein_id, identical_protein_id, eedb, logger):
             props_str = ", ".join(
                 f"{key}: {json.dumps(value)}" for key, value in rel_properties.items()
             )
-            properties_literal = f" {{{props_str}}}"
+            properties_literal = f"{{{props_str}}}"
         else:
             properties_literal = ""
 
@@ -159,99 +159,6 @@ def remove_and_reassign(current_protein_id, identical_protein_id, eedb, logger):
         )
         logger.info(query_recreate_relationship)
         eedb.db.execute_write(query_recreate_relationship)
-
-
-def update_and_remove_identical(current_protein_id, identical_protein_id, eedb, logger):
-    """
-    Update the IdenticalIds attribute of the current protein node with the identical protein's ID,
-    then remove the identical protein node and reassign its relationships.
-
-    Parameters:
-        current_protein_id (str): The protein ID of the node to keep.
-        identical_protein_id (str): The duplicate protein ID to be removed.
-        eedb (Pyeed): The database connection object.
-        logger (logging.Logger): Logger to record execution details.
-    """
-    # Retrieve the IdenticalIds from the kept protein node.
-    query_get_kept_ids = f"""
-        MATCH (p:Protein {{accession_id: "{current_protein_id}"}})
-        RETURN COALESCE(p.IdenticalIds, []) AS IdenticalIds
-    """
-    result_kept = eedb.db.execute_read(query_get_kept_ids)
-    kept_ids = result_kept[0].get("IdenticalIds", []) if result_kept else []
-
-    # Retrieve the IdenticalIds from the removed protein node.
-    query_get_removed_ids = f"""
-        MATCH (p:Protein {{accession_id: "{identical_protein_id}"}})
-        RETURN COALESCE(p.IdenticalIds, []) AS IdenticalIds
-    """
-    result_removed = eedb.db.execute_read(query_get_removed_ids)
-    removed_ids = result_removed[0].get("IdenticalIds", []) if result_removed else []
-
-    # Combine the kept and removed IdenticalIds and add the removed protein's ID.
-    new_ids = set(kept_ids) | set(removed_ids)
-    new_ids.add(identical_protein_id)
-    new_ids_list = list(new_ids)
-
-    query_write_identical_ids = f"""
-        MATCH (p:Protein) WHERE p.accession_id = "{current_protein_id}" 
-        SET p.IdenticalIds = {json.dumps(new_ids_list)}
-    """
-    eedb.db.execute_write(query_write_identical_ids)
-
-    # Remove the identical protein and reassign its relationships.
-    remove_and_reassign(current_protein_id, identical_protein_id, eedb, logger)
-
-
-def handle_identical_protein(current_protein_id, identical_protein_id, eedb, logger):
-    """
-    Process two proteins that are identified as identical.
-    The function checks the 'Source' attribute for both proteins to determine if they are DE_NOVO_BASED_ON_DNA.
-    Depending on the combination:
-        - If both proteins or only the identical protein is DE_NOVO_BASED_ON_DNA, the identical protein node is removed
-          and its relationships reassigned.
-        - If neither protein is DE_NOVO_BASED_ON_DNA, the identical protein's ID is added to the IdenticalIds of the
-          current protein, and then the identical protein node is removed with relationship reassignment.
-
-    Parameters:
-        current_protein_id (str): The protein ID of the node to keep.
-        identical_protein_id (str): The duplicate protein ID detected as identical.
-        eedb (Pyeed): The database connection object.
-        logger (logging.Logger): Logger to record execution details.
-    """
-    query_identical_protein = f"""
-        MATCH (p:Protein) WHERE p.accession_id = "{identical_protein_id}" RETURN p.Source
-    """
-    identical_protein_source = eedb.db.execute_read(query_identical_protein)
-    identical_protein_is_de_novo = (
-        identical_protein_source[0]["p.Source"] == "DE_NOVO_BASED_ON_DNA"
-    )
-
-    query_current_protein = f"""
-        MATCH (p:Protein) WHERE p.accession_id = "{current_protein_id}" RETURN p.Source
-    """
-    current_protein_source = eedb.db.execute_read(query_current_protein)
-    current_protein_is_de_novo = (
-        current_protein_source[0]["p.Source"] == "DE_NOVO_BASED_ON_DNA"
-    )
-
-    if identical_protein_is_de_novo and current_protein_is_de_novo:
-        logger.info(
-            f"Both {current_protein_id} and {identical_protein_id} are DE_NOVO_BASED_ON_DNA"
-        )
-        remove_and_reassign(current_protein_id, identical_protein_id, eedb, logger)
-    elif identical_protein_is_de_novo and not current_protein_is_de_novo:
-        logger.info(
-            f"{current_protein_id} is not DE_NOVO_BASED_ON_DNA and {identical_protein_id} is DE_NOVO_BASED_ON_DNA"
-        )
-        remove_and_reassign(current_protein_id, identical_protein_id, eedb, logger)
-    else:
-        logger.info(
-            f"{current_protein_id} and {identical_protein_id} are not DE_NOVO_BASED_ON_DNA"
-        )
-        update_and_remove_identical(
-            current_protein_id, identical_protein_id, eedb, logger
-        )
 
 
 if __name__ == "__main__":
@@ -271,21 +178,31 @@ if __name__ == "__main__":
     # Process each protein.
     for index in range(0, len(protein_ids)):
         current_protein_id = protein_ids[index]
-        results = et.find_nearest_neighbors_based_on_vector_index(
-            index_name="vector_index_Protein_embedding",
-            query_protein_id=current_protein_id,
-            number_of_neighbors=10,
-            db=eedb.db,
-        )
 
-        for result_list in results:
-            for i in range(1, len(result_list)):
-                if result_list[i] == 1.0:
-                    # Outsource handling of the identical protein into its own function.
-                    if current_protein_id != result_list[0]:
-                        LOGGER.info(
-                            f"Found one that is identical to {current_protein_id}"
-                        )
-                        handle_identical_protein(
-                            current_protein_id, result_list[i], eedb, LOGGER
-                        )
+        # Get all DNA nodes connected to the protein. The relationship goes from DNA to Protein and is called 'ENCODES', it goes from DNA to Protein.
+        query_dna_nodes = f"""
+            MATCH (d:DNA)-[r:ENCODES]->(p:Protein) WHERE p.accession_id = "{current_protein_id}" RETURN d.accession_id, d.sequence, r.start, r.end
+        """
+        dna_nodes = eedb.db.execute_read(query_dna_nodes)
+        dna_nodes_to_remove = []
+
+        for i in range(0, len(dna_nodes)):
+            dna_node = dna_nodes[i]
+            for j in range(i + 1, len(dna_nodes)):
+                other_dna_node = dna_nodes[j]
+
+                # Check if the DNA sequences are identical in the relevant area.
+                if (
+                    dna_node["r.start"] == other_dna_node["r.start"]
+                    and dna_node["r.end"] == other_dna_node["r.end"]
+                ):
+                    LOGGER.info(
+                        f"Identical DNA sequences: {dna_node['d.accession_id']} and {other_dna_node['d.accession_id']}"
+                    )
+
+                    # add the other DNA node to the list of DNA nodes to remove.
+                    dna_nodes_to_remove.append((dna_node, other_dna_node))
+
+        # remove the DNA nodes to remove.
+        for dna_node_kept, dna_node_to_remove in dna_nodes_to_remove:
+            remove_dna_node(dna_node_to_remove, dna_node_kept, eedb, LOGGER)

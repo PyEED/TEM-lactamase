@@ -26,7 +26,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://129.69.129.130:4123"
+uri = "bolt://129.69.129.130:2123"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
@@ -277,16 +277,16 @@ if __name__ == "__main__":
     # Here we are interested in starting a data cleaning.
     # First we want to find identical protein sequences.
 
-    et.drop_vector_index(index_name="vector_index_Protein_embedding", db=eedb.db)
+    # et.drop_vector_index(index_name="vector_index_Protein_embedding", db=eedb.db)
 
-    et.create_embedding_vector_index_neo4j(
-        index_name="vector_index_Protein_embedding",
-        db=eedb.db,
-        similarity_function="cosine",
-        m=512,
-        ef_construction=3200,
-        dimensions=960,
-    )
+    # et.create_embedding_vector_index_neo4j(
+    #     index_name="vector_index_Protein_embedding",
+    #     db=eedb.db,
+    #     similarity_function="cosine",
+    #     m=512,
+    #     ef_construction=3200,
+    #     dimensions=960,
+    # )
 
     query_protein_ids = """
         MATCH (p:Protein) RETURN p.accession_id
@@ -304,15 +304,13 @@ if __name__ == "__main__":
             number_of_neighbors=10,
             db=eedb.db,
         )
-
-        for result_list in results:
-            for i in range(1, len(result_list)):
-                if result_list[i] == 1.0:
-                    # Outsource handling of the identical protein into its own function.
-                    if current_protein_id != result_list[0]:
-                        LOGGER.info(
-                            f"Found one that is identical to {current_protein_id}"
-                        )
-                        handle_identical_protein(
-                            current_protein_id, result_list[i], eedb, LOGGER
-                        )
+        for result in results:
+            if result[1] == 1.0:
+                # Outsource handling of the identical protein into its own function.
+                if current_protein_id != result[0]:
+                    LOGGER.info(
+                        f"Found one that is identical to {current_protein_id} with score {result[1]} and accession {result[0]}"
+                    )
+                    handle_identical_protein(
+                        current_protein_id, result[0], eedb, LOGGER
+                    )
