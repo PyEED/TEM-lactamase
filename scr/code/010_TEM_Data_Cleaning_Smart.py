@@ -307,11 +307,14 @@ if __name__ == "__main__":
             db=eedb.db,
         )
 
-        for result in results:
-            if result[1] == 1.0:
-                # Outsource handling of the identical protein into its own function.
-                if current_protein_id != result[0]:
-                    LOGGER.info(f"Found one that is identical to {current_protein_id}")
-                    handle_identical_protein(
-                        current_protein_id, result[0], eedb, LOGGER
-                    )
+        for result_list in results:
+            for i in range(1, len(result_list)):
+                if result_list[i] == 1.0:
+                    # Outsource handling of the identical protein into its own function.
+                    if current_protein_id != result_list[0]:
+                        LOGGER.info(
+                            f"Found one that is identical to {current_protein_id}"
+                        )
+                        handle_identical_protein(
+                            current_protein_id, result_list[i], eedb, LOGGER
+                        )
