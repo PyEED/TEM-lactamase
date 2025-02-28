@@ -18,7 +18,7 @@ path_to_data_blast_protein = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/
 
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM_HARRY")
+password = os.getenv("NEO4J_NIKLAS_TEM_CLEAN")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 

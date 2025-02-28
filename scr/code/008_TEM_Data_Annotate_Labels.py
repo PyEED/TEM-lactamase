@@ -18,7 +18,7 @@ path_to_TEM_lactamase = (
 
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM_HARRY")
+password = os.getenv("NEO4J_NIKLAS_TEM_CLEAN")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
@@ -29,7 +29,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://129.69.129.130:4123"
+uri = "bolt://129.69.129.130:2123"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)

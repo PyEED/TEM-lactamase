@@ -15,7 +15,7 @@ path_to_data_blast_protein = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/
 
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM_HARRY")
+password = os.getenv("NEO4J_NIKLAS_TEM_CLEAN")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
@@ -26,7 +26,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://129.69.129.130:4123"
+uri = "bolt://129.69.129.130:2123"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
@@ -34,25 +34,6 @@ eedb.db.initialize_db_constraints(user, password)
 et = EmbeddingTool()
 
 # ------------------------------------- FUNCTIONS -------------------------------------
-
-
-def label_node(node_type, node_id, node_label, label_type):
-    """
-    Label a node in the Neo4j database.
-    The node type is the type of the node to be labeled. Could be Protein, DNA
-    The node id is the id of the node to be labeled. Most likely a accession_id
-    The node label is the label of the node to be labeled. Could be DNA_Blast, Protein_Blast, Protein_Bldb
-    The label_type is the type of label to be added. Could be "Source", "TEM_Type", "Resistance_Mechanism", "Species"
-
-    The label is an attribute of the node.
-    """
-
-    query = f"""
-    MATCH (n:{node_type} {{accession_id: "{node_id}"}})
-    SET n.{label_type} = "{node_label}"
-    """
-
-    eedb.db.execute_write(query)
 
 
 def get_all_realtiontship_for_node(node_id, node_type):
@@ -275,20 +256,10 @@ def handle_identical_protein(current_protein_id, identical_protein_id, eedb, log
 
 if __name__ == "__main__":
     # Here we are interested in starting a data cleaning.
-    # First we want to find identical protein sequences.
-
-    """
-    et.drop_vector_index(index_name="vector_index_Protein_embedding", db=eedb.db)
-
-    et.create_embedding_vector_index_neo4j(
-        index_name="vector_index_Protein_embedding",
-        db=eedb.db,
-        similarity_function="cosine",
-        m=512,
-        ef_construction=3200,
-        dimensions=960,
-    )
-    """
+    # We assume the proteins are already cleaned and combined. But there can be multiple DNA sequences for the same protein. Those might be identical. And we want to combine them.
+    # As with the protein cleaning, we want to combine the double DNA sequences in the attribute 'IdenticalIds'.
+    # We then also want to remove the duplicate DNA nodes. But keep for the DNA node that is kept all the realtionship of the removed ones.
+    # Instead of searching with the vector index we just go through the list of proteins and check what DNA sequences conntect to them. And then one by one check wether they are identical in the relevant area aka the start and end of the DNA sequence.
 
     query_protein_ids = """
         MATCH (p:Protein) RETURN p.accession_id

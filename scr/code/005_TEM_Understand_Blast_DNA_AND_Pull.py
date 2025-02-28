@@ -9,11 +9,11 @@ from pyeed import Pyeed
 # ------------------------------------- SETUP -------------------------------------
 
 
-path_to_data_blast = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/blast_data/combined_data_blast_5000_tem_209"
+path_to_data_blast = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/blast_data_dna/2025-01-19_12-37-48"
 
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM")
+password = os.getenv("NEO4J_NIKLAS_TEM_CLEAN")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
@@ -24,7 +24,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://127.0.0.1:8123"
+uri = "bolt://129.69.129.130:2123"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
@@ -45,10 +45,13 @@ def read_all_csv_files_and_concatenate_them(path_to_data_blast):
 if __name__ == "__main__":
     # df = read_all_csv_files_and_concatenate_them(path_to_data_blast)
     # save the dataframe to a csv file
-    # df.to_csv(os.path.join(path_to_data_blast, 'combined_data_blast_5000_tem_209.csv'), index=False)
+    # df.to_csv(
+    #     os.path.join(path_to_data_blast, "combined_data_blast_5000_tem_209.csv"),
+    #     index=False,
+    # )
     # read the csv file
     df = pd.read_csv(
-        os.path.join(path_to_data_blast, "combined_data_blast_5000_tem_209.csv")
+        os.path.join(path_to_data_blast, "combined_data_blast_5000_dna_tem_209.csv")
     )
     print(df.head())
     print(len(df))
@@ -57,7 +60,24 @@ if __name__ == "__main__":
     # how many unique subject id are there?
     unique_subject_ids = df["Subject ID"].unique()
     print(f"Number of unique subject ids: {len(unique_subject_ids)}")
+    for batch in range(0, len(unique_subject_ids), 500):
+        try:
+            batch_ids = unique_subject_ids[batch : batch + 500].tolist()
 
-    # for batch in range(0, len(unique_subject_ids), 500):
-    #     batch_ids = unique_subject_ids[batch:batch+500].tolist()
-    #     eedb.fetch_from_primary_db(ids = batch_ids, db = 'ncbi_protein')
+            # remove the ids KX830961
+            batch_ids = [
+                id
+                for id in batch_ids
+                if id != "KX830961"
+                and id != "CP000649.1"
+                and id != "D00946.1"
+                and id != "NG_050226.1"
+            ]
+
+            eedb.fetch_from_primary_db(ids=batch_ids, db="ncbi_nucleotide")
+        except Exception as e:
+            LOGGER.error(f"Error processing batch {batch}: {str(e)}")
+            continue
+
+
+# nohup python scr/code/005_TEM_Understand_Blast_DNA_AND_Pull.py > output_dna_data_pull.log 2>&1 &

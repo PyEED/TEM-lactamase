@@ -1,6 +1,8 @@
 {
     "neo4j-niklas-playground": ["7687:7687", "7474:7474"],
+    "neo4j-niklas-tem-harry": ["7687:4123", "7474:4124"],
     "neo4j-niklas-tem": ["7687:8123", "7474:8124"],
     "neo4j-niklas-just-tems": ["7687:1123", "7474:1124"],
+    "neo4j-niklas-tem-clean": ["7687:2123", "7474:2124"],
     "neo4j-niklas-tem-secret": ["7687:9123", "7474:9124"]
 }
