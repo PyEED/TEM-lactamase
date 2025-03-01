@@ -126,6 +126,18 @@ if __name__ == "__main__":
         f"Annotated {len(unique_ids_blast_dna)} DNA nodes with Source BLAST_DNA"
     )
 
+    # identify all DNA which is not in the df_blast_dna dataframe, it then has to come from the Protein nucleotide ID
+    # it should have the label DNA_FROM_PROTEIN
+    query_all_dna = "MATCH (d:DNA) RETURN d.accession_id"
+    all_dna = eedb.db.execute_read(query_all_dna)
+    all_dna = [item["d.accession_id"] for item in all_dna]
+    dna_to_annotate = [id for id in all_dna if id not in unique_ids_blast_dna]
+    # Annotate these DNA nodes with BLAST_DNA label in parallel
+    parallel_label_nodes("DNA", dna_to_annotate, "DNA_FROM_PROTEIN", "Source")
+    LOGGER.info(
+        f"Annotated {len(dna_to_annotate)} DNA nodes with Source DNA_FROM_PROTEIN"
+    )
+
     # identify all proteins that are not in the df_blast_protein dataframe or df_tem_lactamase dataframe
     query_all_proteins = "MATCH (p:Protein) RETURN p.accession_id"
     all_proteins = eedb.db.execute_read(query_all_proteins)
@@ -134,16 +146,15 @@ if __name__ == "__main__":
     proteins_to_annotate = [
         id
         for id in all_proteins
-        if id not in unique_ids_blast_protein and id not in unique_ids_elbd
+        if id not in unique_ids_blast_protein
+        and id not in unique_ids_elbd
+        and id not in unique_ids_card
     ]
-    # Annotate these proteins with DNA_Connection label in parallel
-    parallel_label_nodes("Protein", proteins_to_annotate, "DNA_Connection", "Source")
-    LOGGER.info(
-        f"Annotated {len(proteins_to_annotate)} proteins with Source DNA_Connection"
+    # Annotate these proteins with DE_NOVO_BASED_ON_DNA label in parallel
+    # because if not from ELDB not from CARD and not from BLAST it has to be de novo
+    parallel_label_nodes(
+        "Protein", proteins_to_annotate, "DE_NOVO_BASED_ON_DNA", "Source"
     )
-
-    # (Optional / duplicate) annotate all unique ids in df_blast_dna again if needed.
-    parallel_label_nodes("DNA", unique_ids_blast_dna, "BLAST_DNA", "Source")
     LOGGER.info(
-        f"Annotated {len(unique_ids_blast_dna)} DNA nodes with Source BLAST_DNA"
+        f"Annotated {len(proteins_to_annotate)} proteins with Source DE_NOVO_BASED_ON_DNA"
     )

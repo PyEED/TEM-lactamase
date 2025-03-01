@@ -59,11 +59,21 @@ if __name__ == "__main__":
     print(f"Number of unique subject ids: {len(unique_subject_ids)}")
 
     for batch in range(0, len(unique_subject_ids), 2000):
+        print(f"Batch {batch} of {len(unique_subject_ids)}")
         batch_ids = unique_subject_ids[batch : batch + 2000].tolist()
         eedb.fetch_from_primary_db(ids=batch_ids, db="ncbi_protein")
         # eedb.fetch_dna_entries_for_proteins()
 
-    eedb.fetch_dna_entries_for_proteins()
+    tries = 0
+    while tries < 100:
+        try:
+            eedb.fetch_dna_entries_for_proteins()
+            break  # Exit loop if successful
+        except Exception as e:
+            LOGGER.error(f"Error fetching DNA entries for proteins: {e}")
+            tries += 1
+            if tries == 100:
+                LOGGER.error("Maximum number of retries (100) reached")
 
 
 # nohup python scr/code/003_TEM_Understand_Blast_Protein_AND_Pull.py > output_protein_data_pull.log 2>&1 &
