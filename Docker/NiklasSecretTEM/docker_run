@@ -8,9 +8,9 @@ sudo docker run -d --name neo4j-niklas-tem-secret \
   -e NEO4J_dbms_security_procedures_allowlist='["n10s.*", "apoc.*"]' \
   -p 9123:7474 \
   -p 9124:7687 \
-  -v $(pwd)/data:/data \
-  -v $(pwd)/import:/import \
-  -v $(pwd)/plugins:/plugins \
+  -v /home/nab/Niklas/DockerShare/DockerSecretTem/data:/data \
+  -v /home/nab/Niklas/DockerShare/DockerSecretTem/import:/import \
+  -v /home/nab/Niklas/DockerShare/DockerSecretTem/plugins:/plugins \
   my-neo4j:latest
 
 

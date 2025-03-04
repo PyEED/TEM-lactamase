@@ -5,19 +5,14 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 # Neo4j Connection Info
-URI = "http://129.69.129.130:2124"
+URI = "http://localhost:9124"
 USER = "neo4j"
-CONTAINER_NAME = "neo4j-niklas-tem-clean"
+CONTAINER_NAME = "neo4j-niklas-tem-secret"
 
 load_dotenv()
-PASSWORD = os.getenv("NEO4J_NIKLAS_TEM_CLEAN")
+PASSWORD = os.getenv("NEO4J_NIKLAS_TEM_SECRET")
 if PASSWORD is None:
     raise ValueError("KEY is not set in the .env file.")
-
-
-# Backup directory
-BACKUP_DIR = "/home/nab/Niklas/DockerShare/DockerTEMClean/backups"
-IMPORT_DIR = "/home/nab/Niklas/DockerShare/DockerTEMClean/import"
 
 
 def run_command(command):
@@ -32,7 +27,10 @@ def run_command(command):
         raise
 
 
-def backup_neo4j():
+def backup_neo4j(
+    BACKUP_DIR="/home/nab/Niklas/DockerShare/DockerTEMClean/backups",
+    IMPORT_DIR="/home/nab/Niklas/DockerShare/DockerTEMClean/import",
+):
     """
     Create a Neo4j database backup.
     """
@@ -61,7 +59,10 @@ def backup_neo4j():
     print(f"Backup saved to: {backup_file}")
 
 
-def restore_neo4j(backup_file):
+def restore_neo4j(
+    backup_file,
+    IMPORT_DIR="/home/nab/Niklas/DockerShare/DockerSecretTem/import",
+):
     """
     Restore a Neo4j database from a backup.
     """
@@ -89,7 +90,12 @@ def restore_neo4j(backup_file):
 
 
 if __name__ == "__main__":
-    backup_neo4j()
+    backup_neo4j(
+        BACKUP_DIR="/home/nab/Niklas/DockerShare/DockerSecretTem/backups",
+        IMPORT_DIR="/home/nab/Niklas/DockerShare/DockerSecretTem/import",
+    )
 
-    # Restore backup file is /mnt/nab/backups/TEM_Development/neo4j_backup_20241130_100940.dump
-    # restore_neo4j("/mnt/nab/backups/TEM_Development/neo4j_backup_20241219_133125.dump")
+    # Restore backup file is /home/nab/Niklas/DockerShare/DockerTEMClean/backups/neo4j_backup_20250304_091943.dump
+    # restore_neo4j(
+    #     "/home/nab/Niklas/DockerShare/DockerTEMClean/backups/neo4j_backup_20250304_091943.dump"
+    # )
