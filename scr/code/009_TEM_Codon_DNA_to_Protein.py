@@ -113,12 +113,12 @@ if __name__ == "__main__":
             number_of_neighbors=2,
             db=eedb.db,
         )
-        LOGGER.info(f"Results: {results}")
+        LOGGER.info(f"Results: {results} with the current new protein id {id}")
 
         already_in_database = False
 
         # if the score second attribute in the first return is 1.0 then we need to remove the protein
-        if results[0][1] == 1.0:
+        if results[1][1] == 1.0:
             query_remove_protein = f"""
                 MATCH (p:Protein) WHERE p.accession_id = "{id}" DELETE p
             """
@@ -129,14 +129,18 @@ if __name__ == "__main__":
         # now we want to create the relationship between the DNA and the Protein
         if already_in_database:
             query_dna_protein_relationship = f"""
-                MATCH (d:DNA) WHERE d.accession_id = "{dna_id}" MATCH (p:Protein) WHERE p.accession_id = "{results[0][0]}" CREATE (d)-[:ENCODES]->(p)
+                MATCH (d:DNA) WHERE d.accession_id = "{dna_id}" 
+                MATCH (p:Protein) WHERE p.accession_id = "{results[1][0]}" 
+                CREATE (d)-[:ENCODES {{start: 1, end: 1}}]->(p)
             """
             LOGGER.info(
-                f"Created relationship between DNA and Protein with accession id {results[0][0]} and DNA id {dna_id}"
+                f"Created relationship between DNA and Protein with accession id {results[1][0]} and DNA id {dna_id}"
             )
         else:
             query_dna_protein_relationship = f"""
-                MATCH (d:DNA) WHERE d.accession_id = "{dna_id}" MATCH (p:Protein) WHERE p.accession_id = "{id}" CREATE (d)-[:ENCODES]->(p)
+                MATCH (d:DNA) WHERE d.accession_id = "{dna_id}" 
+                MATCH (p:Protein) WHERE p.accession_id = "{id}" 
+                CREATE (d)-[:ENCODES {{start: 1, end: 1}}]->(p)
             """
             LOGGER.info(
                 f"Created relationship between DNA and Protein with accession id {id} and DNA id {dna_id}"

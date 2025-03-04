@@ -161,6 +161,42 @@ def remove_dna_node(dna_node_to_remove, dna_node_kept, eedb, logger):
         eedb.db.execute_write(query_recreate_relationship)
 
 
+def update_and_remove_identical_dna(dna_node_kept, dna_node_to_remove, eedb, logger):
+    """
+    Update the IdenticalIds attribute of the kept DNA node (if it exists) with the removed DNA node's accession,
+    then remove the duplicate DNA node and reassign its relationships.
+    """
+    # Retrieve the IdenticalIds from the kept DNA node.
+    query_get_kept_ids = f"""
+        MATCH (d:DNA {{accession_id: "{dna_node_kept['d.accession_id']}"}})
+        RETURN COALESCE(d.IdenticalIds, []) AS IdenticalIds
+    """
+    result_kept = eedb.db.execute_read(query_get_kept_ids)
+    kept_ids = result_kept[0].get("IdenticalIds", []) if result_kept else []
+
+    # Retrieve the IdenticalIds from the removed DNA node.
+    query_get_removed_ids = f"""
+        MATCH (d:DNA {{accession_id: "{dna_node_to_remove['d.accession_id']}"}})
+        RETURN COALESCE(d.IdenticalIds, []) AS IdenticalIds
+    """
+    result_removed = eedb.db.execute_read(query_get_removed_ids)
+    removed_ids = result_removed[0].get("IdenticalIds", []) if result_removed else []
+
+    # Combine kept and removed IdenticalIds and add the removed DNA node's own accession.
+    new_ids = set(kept_ids) | set(removed_ids)
+    new_ids.add(dna_node_to_remove["d.accession_id"])
+    new_ids_list = list(new_ids)
+
+    query_write_identical_ids = f"""
+        MATCH (d:DNA) WHERE d.accession_id = "{dna_node_kept['d.accession_id']}"
+        SET d.IdenticalIds = {json.dumps(new_ids_list)}
+    """
+    eedb.db.execute_write(query_write_identical_ids)
+
+    # Now remove the duplicate DNA node and reassign its relationships.
+    remove_dna_node(dna_node_to_remove, dna_node_kept, eedb, logger)
+
+
 if __name__ == "__main__":
     # Here we are interested in starting a data cleaning.
     # We assume the proteins are already cleaned and combined. But there can be multiple DNA sequences for the same protein. Those might be identical. And we want to combine them.
@@ -203,6 +239,8 @@ if __name__ == "__main__":
                     # add the other DNA node to the list of DNA nodes to remove.
                     dna_nodes_to_remove.append((dna_node, other_dna_node))
 
-        # remove the DNA nodes to remove.
+        # remove the duplicate DNA nodes while updating their IdenticalIds on the kept node
         for dna_node_kept, dna_node_to_remove in dna_nodes_to_remove:
-            remove_dna_node(dna_node_to_remove, dna_node_kept, eedb, LOGGER)
+            update_and_remove_identical_dna(
+                dna_node_kept, dna_node_to_remove, eedb, LOGGER
+            )

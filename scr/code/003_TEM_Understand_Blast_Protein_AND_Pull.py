@@ -58,11 +58,14 @@ if __name__ == "__main__":
     unique_subject_ids = df["Subject ID"].unique()
     print(f"Number of unique subject ids: {len(unique_subject_ids)}")
 
-    for batch in range(0, len(unique_subject_ids), 2000):
-        print(f"Batch {batch} of {len(unique_subject_ids)}")
-        batch_ids = unique_subject_ids[batch : batch + 2000].tolist()
-        eedb.fetch_from_primary_db(ids=batch_ids, db="ncbi_protein")
-        # eedb.fetch_dna_entries_for_proteins()
+    for batch in range(0, len(unique_subject_ids), 500):
+        try:
+            print(f"Batch {batch} of {len(unique_subject_ids)}")
+            batch_ids = unique_subject_ids[batch : batch + 500].tolist()
+            eedb.fetch_from_primary_db(ids=batch_ids, db="ncbi_protein")
+            # eedb.fetch_dna_entries_for_proteins()
+        except Exception as e:
+            LOGGER.error(f"Error fetching protein data: {e}")
 
     tries = 0
     while tries < 100:
