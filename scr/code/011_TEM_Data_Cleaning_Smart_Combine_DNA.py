@@ -1,4 +1,5 @@
 # ------------------------------------- IMPORTING PACKAGES -------------------------------------
+import concurrent.futures
 import json
 import logging
 import os
@@ -201,8 +202,8 @@ if __name__ == "__main__":
     # Here we are interested in starting a data cleaning.
     # We assume the proteins are already cleaned and combined. But there can be multiple DNA sequences for the same protein. Those might be identical. And we want to combine them.
     # As with the protein cleaning, we want to combine the double DNA sequences in the attribute 'IdenticalIds'.
-    # We then also want to remove the duplicate DNA nodes. But keep for the DNA node that is kept all the realtionship of the removed ones.
-    # Instead of searching with the vector index we just go through the list of proteins and check what DNA sequences conntect to them. And then one by one check wether they are identical in the relevant area aka the start and end of the DNA sequence.
+    # We then also want to remove the duplicate DNA nodes, but keeping for the DNA node that is kept all the relationships of the removed ones.
+    # Instead of searching with the vector index we just go through the list of proteins and check what DNA sequences connect to them. And then one by one check whether they are identical in the relevant area aka the start and end of the DNA sequence.
 
     query_protein_ids = """
         MATCH (p:Protein) RETURN p.accession_id
@@ -211,36 +212,34 @@ if __name__ == "__main__":
     protein_ids = [protein_id["p.accession_id"] for protein_id in protein_ids]
     print(f"Number of proteins: {len(protein_ids)}")
 
-    # Process each protein.
-    for index in range(0, len(protein_ids)):
-        current_protein_id = protein_ids[index]
-
-        # Get all DNA nodes connected to the protein. The relationship goes from DNA to Protein and is called 'ENCODES', it goes from DNA to Protein.
+    # Define a worker function to process each protein.
+    def process_protein(current_protein_id):
         query_dna_nodes = f"""
-            MATCH (d:DNA)-[r:ENCODES]->(p:Protein) WHERE p.accession_id = "{current_protein_id}" RETURN d.accession_id, d.sequence, r.start, r.end
+            MATCH (d:DNA)-[r:ENCODES]->(p:Protein)
+            WHERE p.accession_id = "{current_protein_id}"
+            RETURN d.accession_id, d.sequence, r.start, r.end
         """
         dna_nodes = eedb.db.execute_read(query_dna_nodes)
-        dna_nodes_to_remove = []
 
-        for i in range(0, len(dna_nodes)):
+        for i in range(len(dna_nodes)):
             dna_node = dna_nodes[i]
             for j in range(i + 1, len(dna_nodes)):
                 other_dna_node = dna_nodes[j]
 
                 # Check if the DNA sequences are identical in the relevant area.
                 if (
-                    dna_node["r.start"] == other_dna_node["r.start"]
-                    and dna_node["r.end"] == other_dna_node["r.end"]
+                    dna_node["d.sequence"][dna_node["r.start"] : dna_node["r.end"]]
+                    == other_dna_node["d.sequence"][
+                        other_dna_node["r.start"] : other_dna_node["r.end"]
+                    ]
                 ):
                     LOGGER.info(
                         f"Identical DNA sequences: {dna_node['d.accession_id']} and {other_dna_node['d.accession_id']}"
                     )
+                    update_and_remove_identical_dna(
+                        dna_node, other_dna_node, eedb, LOGGER
+                    )
 
-                    # add the other DNA node to the list of DNA nodes to remove.
-                    dna_nodes_to_remove.append((dna_node, other_dna_node))
-
-        # remove the duplicate DNA nodes while updating their IdenticalIds on the kept node
-        for dna_node_kept, dna_node_to_remove in dna_nodes_to_remove:
-            update_and_remove_identical_dna(
-                dna_node_kept, dna_node_to_remove, eedb, LOGGER
-            )
+    # Use a ThreadPoolExecutor to process proteins in parallel.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        executor.map(process_protein, protein_ids)
