@@ -86,8 +86,9 @@ def remove_and_reassign(current_protein_id, identical_protein_id, eedb, logger):
         logger (logging.Logger): Logger to record execution details.
     """
     # Retrieve all relationships of the identical protein node.
+    logger.info(f"Retrieving all relationships of {identical_protein_id}")
     relationships = get_all_realtiontship_for_node(identical_protein_id, "Protein")
-
+    logger.info(f"Retrieved {len(relationships)} relationships")
     # Remove the identical protein node from the database.
     query_remove = f"""
         MATCH (p:Protein) WHERE p.accession_id = "{identical_protein_id}" DETACH DELETE p

@@ -1,5 +1,4 @@
 # ------------------------------------- IMPORTING PACKAGES -------------------------------------
-import concurrent.futures
 import json
 import logging
 import os
@@ -10,22 +9,18 @@ from pyeed.analysis.embedding_analysis import EmbeddingTool
 
 # ------------------------------------- SETUP -------------------------------------
 
-
 path_to_data_blast_dna = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/blast_data_dna/2025-01-19_12-37-48"
 path_to_data_blast_protein = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/blast_data/combined_data_blast_5000_tem_209"
-
 
 load_dotenv()
 password = os.getenv("NEO4J_NIKLAS_TEM_CLEAN")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
-
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 LOGGER = logging.getLogger(__name__)
-
 
 uri = "bolt://129.69.129.130:2123"
 user = "neo4j"
@@ -61,10 +56,13 @@ def remove_dna_node(dna_node_to_remove, dna_node_kept, eedb, logger):
     Remove a DNA node and take over all the relationships of the removed one to the DNA node which is kept.
     """
     # Retrieve all relationships of the removed DNA node.
+    logger.info(
+        f"Retrieving all relationships of {dna_node_to_remove['d.accession_id']}"
+    )
     relationships = get_all_realtiontship_for_node(
         dna_node_to_remove["d.accession_id"], "DNA"
     )
-
+    logger.info(f"Retrieved {len(relationships)} relationships")
     # Remove the removed DNA node from the database.
     query_remove = f"""
         MATCH (d:DNA) WHERE d.accession_id = "{dna_node_to_remove['d.accession_id']}" DETACH DELETE d
@@ -72,12 +70,12 @@ def remove_dna_node(dna_node_to_remove, dna_node_kept, eedb, logger):
     eedb.db.execute_write(query_remove)
     logger.info(f"Removing {dna_node_to_remove['d.accession_id']} from the database")
 
-    # Recreate the removed DNA node's relationships, reassigning to current DNA node.
+    # Recreate the removed DNA node's relationships, reassigning to the DNA node which is kept.
     for relationship in relationships:
         start_node_label = relationship["start_node_type"]
         end_node_label = relationship["end_node_type"]
 
-        # Determine which side in the relationship is the deleted (identical) protein.
+        # Determine which side in the relationship is the removed DNA node.
         if (
             relationship["start_node"].get("accession_id")
             == dna_node_to_remove["d.accession_id"]
@@ -128,7 +126,7 @@ def remove_dna_node(dna_node_to_remove, dna_node_kept, eedb, logger):
             )
             continue
 
-        # Build the MATCH clauses dynamically based on whether to use property or internal id.
+        # Build the MATCH clauses dynamically.
         if new_start_info["match_by"] == "accession":
             start_match_clause = f'MATCH (start:{new_start_info["label"]}) WHERE start.accession_id = "{new_start_info["value"]}"'
         else:
@@ -139,10 +137,9 @@ def remove_dna_node(dna_node_to_remove, dna_node_kept, eedb, logger):
         else:
             end_match_clause = f'MATCH (end:{new_end_info["label"]}) WHERE id(end) = {new_end_info["value"]}'
 
-        # New code: convert any relationship properties to a Cypher map literal.
+        # Convert relationship properties to a Cypher map literal.
         rel_properties = relationship.get("properties", {})
         if rel_properties:
-            # Construct a string like 'key1: "value1", key2: 5'
             props_str = ", ".join(
                 f"{key}: {json.dumps(value)}" for key, value in rel_properties.items()
             )
@@ -155,10 +152,10 @@ def remove_dna_node(dna_node_to_remove, dna_node_kept, eedb, logger):
             {end_match_clause}
             CREATE (start)-[:{relationship['type']}{properties_literal}]->(end)
         """
+        logger.info(query_recreate_relationship)
         print(
             f"Recreating relationship of type {relationship['type']} from {new_start_info['value']} to {new_end_info['value']}"
         )
-        logger.info(query_recreate_relationship)
         eedb.db.execute_write(query_recreate_relationship)
 
 
@@ -198,48 +195,64 @@ def update_and_remove_identical_dna(dna_node_kept, dna_node_to_remove, eedb, log
     remove_dna_node(dna_node_to_remove, dna_node_kept, eedb, logger)
 
 
-if __name__ == "__main__":
-    # Here we are interested in starting a data cleaning.
-    # We assume the proteins are already cleaned and combined. But there can be multiple DNA sequences for the same protein. Those might be identical. And we want to combine them.
-    # As with the protein cleaning, we want to combine the double DNA sequences in the attribute 'IdenticalIds'.
-    # We then also want to remove the duplicate DNA nodes, but keeping for the DNA node that is kept all the relationships of the removed ones.
-    # Instead of searching with the vector index we just go through the list of proteins and check what DNA sequences connect to them. And then one by one check whether they are identical in the relevant area aka the start and end of the DNA sequence.
-
-    query_protein_ids = """
-        MATCH (p:Protein) RETURN p.accession_id
+def process_protein(current_protein_id):
     """
-    protein_ids = eedb.db.execute_read(query_protein_ids)
-    protein_ids = [protein_id["p.accession_id"] for protein_id in protein_ids]
-    print(f"Number of proteins: {len(protein_ids)}")
+    Process a single protein by grouping its associated DNA nodes by the sliced sequence
+    (from r.start to r.end) to quickly identify duplicates.
+    """
+    query_dna_nodes = f"""
+        MATCH (d:DNA)-[r:ENCODES]->(p:Protein)
+        WHERE p.accession_id = "{current_protein_id}"
+        RETURN d.accession_id, d.sequence, r.start, r.end
+    """
+    dna_nodes = eedb.db.execute_read(query_dna_nodes)
+    if not dna_nodes:
+        return
 
-    # Define a worker function to process each protein.
-    def process_protein(current_protein_id):
-        query_dna_nodes = f"""
-            MATCH (d:DNA)-[r:ENCODES]->(p:Protein)
-            WHERE p.accession_id = "{current_protein_id}"
-            RETURN d.accession_id, d.sequence, r.start, r.end
+    # Group DNA nodes by the sub-sequence slice.
+    groups = {}
+    for dna in dna_nodes:
+        # Calculate the sub-sequence using r.start and r.end.
+        sub_seq = dna["d.sequence"][dna["r.start"] : dna["r.end"]]
+        groups.setdefault(sub_seq, []).append(dna)
+
+    # For groups with duplicates, keep the first and remove the rest.
+    for group in groups.values():
+        if len(group) > 1:
+            kept = group[0]
+            for duplicate in group[1:]:
+                LOGGER.info(
+                    f"Identical DNA sequences: {kept['d.accession_id']} and {duplicate['d.accession_id']}"
+                )
+                update_and_remove_identical_dna(kept, duplicate, eedb, LOGGER)
+
+
+def get_protein_ids_in_batches(batch_size=1000):
+    """
+    Generator that yields protein IDs in batches to avoid loading all protein IDs into memory.
+    Uses SKIP and LIMIT in the Cypher query.
+    """
+    skip = 0
+    while True:
+        query = f"""
+            MATCH (p:Protein)
+            RETURN p.accession_id
+            SKIP {skip} LIMIT {batch_size}
         """
-        dna_nodes = eedb.db.execute_read(query_dna_nodes)
+        results = eedb.db.execute_read(query)
+        if not results:
+            break
+        for record in results:
+            yield record["p.accession_id"]
+        skip += batch_size
 
-        for i in range(len(dna_nodes)):
-            dna_node = dna_nodes[i]
-            for j in range(i + 1, len(dna_nodes)):
-                other_dna_node = dna_nodes[j]
 
-                # Check if the DNA sequences are identical in the relevant area.
-                if (
-                    dna_node["d.sequence"][dna_node["r.start"] : dna_node["r.end"]]
-                    == other_dna_node["d.sequence"][
-                        other_dna_node["r.start"] : other_dna_node["r.end"]
-                    ]
-                ):
-                    LOGGER.info(
-                        f"Identical DNA sequences: {dna_node['d.accession_id']} and {other_dna_node['d.accession_id']}"
-                    )
-                    update_and_remove_identical_dna(
-                        dna_node, other_dna_node, eedb, LOGGER
-                    )
-
-    # Use a ThreadPoolExecutor to process proteins in parallel.
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        executor.map(process_protein, protein_ids)
+if __name__ == "__main__":
+    # Count of processed proteins.
+    processed = 0
+    # Process proteins in batches.
+    for protein_id in get_protein_ids_in_batches(batch_size=200):
+        process_protein(protein_id)
+        processed += 1
+        if processed % 100 == 0:
+            LOGGER.info(f"Processed {processed} proteins.")
