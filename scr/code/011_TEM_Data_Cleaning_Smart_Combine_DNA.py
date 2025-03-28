@@ -65,7 +65,7 @@ def remove_dna_node(dna_node_to_remove, dna_node_kept, eedb, logger):
     logger.info(f"Retrieved {len(relationships)} relationships")
     # Remove the removed DNA node from the database.
     query_remove = f"""
-        MATCH (d:DNA) WHERE d.accession_id = "{dna_node_to_remove['d.accession_id']}" DETACH DELETE d
+        MATCH (d:DNA) WHERE d.accession_id = "{dna_node_to_remove["d.accession_id"]}" DETACH DELETE d
     """
     eedb.db.execute_write(query_remove)
     logger.info(f"Removing {dna_node_to_remove['d.accession_id']} from the database")
@@ -130,12 +130,12 @@ def remove_dna_node(dna_node_to_remove, dna_node_kept, eedb, logger):
         if new_start_info["match_by"] == "accession":
             start_match_clause = f'MATCH (start:{new_start_info["label"]}) WHERE start.accession_id = "{new_start_info["value"]}"'
         else:
-            start_match_clause = f'MATCH (start:{new_start_info["label"]}) WHERE id(start) = {new_start_info["value"]}'
+            start_match_clause = f"MATCH (start:{new_start_info['label']}) WHERE id(start) = {new_start_info['value']}"
 
         if new_end_info["match_by"] == "accession":
             end_match_clause = f'MATCH (end:{new_end_info["label"]}) WHERE end.accession_id = "{new_end_info["value"]}"'
         else:
-            end_match_clause = f'MATCH (end:{new_end_info["label"]}) WHERE id(end) = {new_end_info["value"]}'
+            end_match_clause = f"MATCH (end:{new_end_info['label']}) WHERE id(end) = {new_end_info['value']}"
 
         # Convert relationship properties to a Cypher map literal.
         rel_properties = relationship.get("properties", {})
@@ -150,7 +150,7 @@ def remove_dna_node(dna_node_to_remove, dna_node_kept, eedb, logger):
         query_recreate_relationship = f"""
             {start_match_clause}
             {end_match_clause}
-            CREATE (start)-[:{relationship['type']}{properties_literal}]->(end)
+            CREATE (start)-[:{relationship["type"]}{properties_literal}]->(end)
         """
         logger.info(query_recreate_relationship)
         print(
@@ -166,7 +166,7 @@ def update_and_remove_identical_dna(dna_node_kept, dna_node_to_remove, eedb, log
     """
     # Retrieve the IdenticalIds from the kept DNA node.
     query_get_kept_ids = f"""
-        MATCH (d:DNA {{accession_id: "{dna_node_kept['d.accession_id']}"}})
+        MATCH (d:DNA {{accession_id: "{dna_node_kept["d.accession_id"]}"}})
         RETURN COALESCE(d.IdenticalIds, []) AS IdenticalIds
     """
     result_kept = eedb.db.execute_read(query_get_kept_ids)
@@ -174,7 +174,7 @@ def update_and_remove_identical_dna(dna_node_kept, dna_node_to_remove, eedb, log
 
     # Retrieve the IdenticalIds from the removed DNA node.
     query_get_removed_ids = f"""
-        MATCH (d:DNA {{accession_id: "{dna_node_to_remove['d.accession_id']}"}})
+        MATCH (d:DNA {{accession_id: "{dna_node_to_remove["d.accession_id"]}"}})
         RETURN COALESCE(d.IdenticalIds, []) AS IdenticalIds
     """
     result_removed = eedb.db.execute_read(query_get_removed_ids)
@@ -186,7 +186,7 @@ def update_and_remove_identical_dna(dna_node_kept, dna_node_to_remove, eedb, log
     new_ids_list = list(new_ids)
 
     query_write_identical_ids = f"""
-        MATCH (d:DNA) WHERE d.accession_id = "{dna_node_kept['d.accession_id']}"
+        MATCH (d:DNA) WHERE d.accession_id = "{dna_node_kept["d.accession_id"]}"
         SET d.IdenticalIds = {json.dumps(new_ids_list)}
     """
     eedb.db.execute_write(query_write_identical_ids)
@@ -201,9 +201,9 @@ def process_protein(current_protein_id):
     (from r.start to r.end) to quickly identify duplicates.
     """
     query_dna_nodes = f"""
-        MATCH (d:DNA)-[r:ENCODES]->(p:Protein)
-        WHERE p.accession_id = "{current_protein_id}"
-        RETURN d.accession_id, d.sequence, r.start, r.end
+        MATCH (reg:Region)-[rel_reg:HAS_REGION]-(d:DNA)-[r:ENCODES]->(p:Protein)
+        WHERE p.accession_id = "{current_protein_id}" and reg.sequence_id = "{current_protein_id}"
+        RETURN d.accession_id, d.sequence, rel_reg.start, rel_reg.end
     """
     dna_nodes = eedb.db.execute_read(query_dna_nodes)
     if not dna_nodes:
@@ -213,7 +213,7 @@ def process_protein(current_protein_id):
     groups = {}
     for dna in dna_nodes:
         # Calculate the sub-sequence using r.start and r.end.
-        sub_seq = dna["d.sequence"][dna["r.start"] : dna["r.end"]]
+        sub_seq = dna["d.sequence"][dna["rel_reg.start"] : dna["rel_reg.end"]]
         groups.setdefault(sub_seq, []).append(dna)
 
     # For groups with duplicates, keep the first and remove the rest.
@@ -221,6 +221,10 @@ def process_protein(current_protein_id):
         if len(group) > 1:
             kept = group[0]
             for duplicate in group[1:]:
+                # Skip if the accession IDs are the same
+                if kept["d.accession_id"] == duplicate["d.accession_id"]:
+                    continue
+
                 LOGGER.info(
                     f"Identical DNA sequences: {kept['d.accession_id']} and {duplicate['d.accession_id']}"
                 )
