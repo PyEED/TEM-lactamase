@@ -105,7 +105,7 @@ def count_number_of_completed_regions(accession_id_blaTEM1a):
     MATCH (r1:Region)-[r1d1:HAS_REGION]-(d1:DNA)-[:ENCODES]-(p1:Protein)-[:MUTATION]-(p2:Protein)-[:ENCODES]-(d2:DNA)-[r2d2:HAS_REGION]-(r2:Region)
     WHERE p1.accession_id = $accession_id_blaTEM1a
       AND r1.sequence_id = p1.accession_id
-      AND d2.completed = 1
+      AND d2.complement = 1
     RETURN count(DISTINCT d2)
     """
 
@@ -114,7 +114,7 @@ def count_number_of_completed_regions(accession_id_blaTEM1a):
         parameters={"accession_id_blaTEM1a": accession_id_blaTEM1a},
     )
 
-    return result_count_number_of_completed_regions[0]["count(r2)"]
+    return result_count_number_of_completed_regions[0]["count(DISTINCT d2)"]
 
 
 def make_reset_of_completed_regions(accession_id_blaTEM1a):
@@ -135,6 +135,12 @@ def make_reset_of_completed_regions(accession_id_blaTEM1a):
 if __name__ == "__main__":
     key_base_sequence_id = "AL513383.1"
     key_base_sequence_Region_id = 10228113
+
+    print(
+        count_number_of_completed_regions(
+            accession_id_blaTEM1a=blaTEM1a_database_id,
+        )
+    )
 
     # find all Protein and their DNA which are not yet connected through a region region mutation to the base sequence DNA
     # the idea is that the protein are already connected and now I want to find the dna to the proteins whoch are already connected and get their region ids
