@@ -19,7 +19,7 @@ file_path_index = "/home/nab/Niklas/TEM-lactamase/CARD_Data_Data/aro_index.tsv"
 
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM_CLEAN")
+password = os.getenv("NEO4J_NIKLAS_TEM_NEW_START")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
@@ -28,7 +28,7 @@ logging.basicConfig(
 )
 LOGGER = logging.getLogger(__name__)
 
-uri = "bolt://129.69.129.130:2123"
+uri = "bolt://129.69.129.130:2127"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
@@ -158,3 +158,7 @@ if __name__ == "__main__":
     LOGGER.info(
         f"Annotated {len(proteins_to_annotate)} proteins with Source DE_NOVO_BASED_ON_DNA"
     )
+
+    eedb.create_coding_sequences_regions()
+
+# nohup python scr/code/008_TEM_Data_Annotate_Labels.py > output_annotate_labels.log 2>&1 &

@@ -18,7 +18,7 @@ path_to_data_blast_protein = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/
 
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM_CLEAN")
+password = os.getenv("NEO4J_NIKLAS_TEM_NEW_START")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
@@ -29,7 +29,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://129.69.129.130:2123"
+uri = "bolt://129.69.129.130:2127"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
@@ -57,15 +57,20 @@ def predict_protein_sequence(dna_id: str) -> str:
         str: The translated protein sequence, or an empty string if the FASTA file is not found.
     """
     query_dna_sequence = f"""
-        MATCH (d:DNA) WHERE d.accession_id = "{dna_id}" RETURN d.sequence
+        MATCH (r:Region {{annotation: "coding sequence"}})-[rel:HAS_REGION]-(d:DNA) WHERE d.accession_id = "{dna_id}" RETURN d.sequence, rel.start, rel.end
     """
 
-    dna_sequence = eedb.db.execute_read(query_dna_sequence)
-    dna_sequence = dna_sequence[0]["d.sequence"]
+    dna_sequence_query = eedb.db.execute_read(query_dna_sequence)
+    if len(dna_sequence_query) == 0:
+        LOGGER.info(f"No DNA sequence found for {dna_id}")
+        return ""
+    dna_sequence = dna_sequence_query[0]["d.sequence"]
+    start = int(dna_sequence_query[0]["rel.start"])
+    end = int(dna_sequence_query[0]["rel.end"])
     # Translate the DNA sequence using Biopython's Seq module.
     from Bio.Seq import Seq
 
-    protein = str(Seq(dna_sequence).translate(to_stop=True))
+    protein = str(Seq(dna_sequence[start:end]).translate(to_stop=True))
     return protein
 
 

@@ -67,8 +67,10 @@ for single_tem in result:
 
 
 # max number of neighbours
-n_neighbours = 100
-name_of_standard_numbering_tool = "standard_numbering_pairwise_blaTEM1a"
+n_neighbours = 500
+name_of_standard_numbering_tool = (
+    "standard_numbering_pairwise_blaTEM1a_mutations_to_blaTEM1"
+)
 
 et = EmbeddingTool()
 sn = StandardNumberingTool(name=name_of_standard_numbering_tool)

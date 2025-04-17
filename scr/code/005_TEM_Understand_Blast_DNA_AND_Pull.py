@@ -13,7 +13,7 @@ path_to_data_blast = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/blast_da
 
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM_CLEAN")
+password = os.getenv("NEO4J_NIKLAS_TEM_NEW_START")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
@@ -24,7 +24,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://129.69.129.130:2123"
+uri = "bolt://129.69.129.130:2127"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
@@ -61,23 +61,22 @@ if __name__ == "__main__":
     unique_subject_ids = df["Subject ID"].unique()
     print(f"Number of unique subject ids: {len(unique_subject_ids)}")
     for batch in range(0, len(unique_subject_ids), 500):
-        try:
-            batch_ids = unique_subject_ids[batch : batch + 500].tolist()
+        trys = 0
+        print(f"Batch {batch} of {len(unique_subject_ids)}")
+        while trys < 20:
+            try:
+                batch_ids = unique_subject_ids[batch : batch + 500].tolist()
 
-            # remove the ids KX830961
-            batch_ids = [
-                id
-                for id in batch_ids
-                if id != "KX830961"
-                and id != "CP000649.1"
-                and id != "D00946.1"
-                and id != "NG_050226.1"
-            ]
+                eedb.fetch_from_primary_db(ids=batch_ids, db="ncbi_nucleotide")
 
-            eedb.fetch_from_primary_db(ids=batch_ids, db="ncbi_nucleotide")
-        except Exception as e:
-            LOGGER.error(f"Error processing batch {batch}: {str(e)}")
-            continue
+                # if it run through the loop without an error, break the loop while loop
+                break
+            except Exception as e:
+                LOGGER.error(f"Error processing batch {batch}: {str(e)}")
+                trys += 1
+                if trys == 20:
+                    LOGGER.error("Maximum number of retries (20) reached")
+                    break
 
 
 # nohup python scr/code/005_TEM_Understand_Blast_DNA_AND_Pull.py > output_dna_data_pull.log 2>&1 &

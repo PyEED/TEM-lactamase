@@ -15,7 +15,7 @@ path_to_data_blast_protein = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/
 
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM_CLEAN")
+password = os.getenv("NEO4J_NIKLAS_TEM_NEW_START")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
@@ -26,7 +26,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://129.69.129.130:2123"
+uri = "bolt://129.69.129.130:2127"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
@@ -151,12 +151,12 @@ def remove_and_reassign(current_protein_id, identical_protein_id, eedb, logger):
         if new_start_info["match_by"] == "accession":
             start_match_clause = f'MATCH (start:{new_start_info["label"]}) WHERE start.accession_id = "{new_start_info["value"]}"'
         else:
-            start_match_clause = f'MATCH (start:{new_start_info["label"]}) WHERE id(start) = {new_start_info["value"]}'
+            start_match_clause = f"MATCH (start:{new_start_info['label']}) WHERE id(start) = {new_start_info['value']}"
 
         if new_end_info["match_by"] == "accession":
             end_match_clause = f'MATCH (end:{new_end_info["label"]}) WHERE end.accession_id = "{new_end_info["value"]}"'
         else:
-            end_match_clause = f'MATCH (end:{new_end_info["label"]}) WHERE id(end) = {new_end_info["value"]}'
+            end_match_clause = f"MATCH (end:{new_end_info['label']}) WHERE id(end) = {new_end_info['value']}"
 
         # New code: convert any relationship properties to a Cypher map literal.
         rel_properties = relationship.get("properties", {})
@@ -172,7 +172,7 @@ def remove_and_reassign(current_protein_id, identical_protein_id, eedb, logger):
         query_recreate_relationship = f"""
             {start_match_clause}
             {end_match_clause}
-            CREATE (start)-[:{relationship['type']}{properties_literal}]->(end)
+            CREATE (start)-[:{relationship["type"]}{properties_literal}]->(end)
         """
         print(
             f"Recreating relationship of type {relationship['type']} from {new_start_info['value']} to {new_end_info['value']}"
