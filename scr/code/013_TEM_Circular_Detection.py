@@ -1,6 +1,8 @@
 import logging
 import os
 
+import numpy as np
+import pandas as pd
 from dotenv import load_dotenv
 from pyeed import Pyeed
 from pyeed.analysis.embedding_analysis import EmbeddingTool
@@ -133,22 +135,72 @@ if __name__ == "__main__":
     result_number_of_total_ids = eedb.db.execute_read(query_number_of_total_ids)
     number_of_total_ids = result_number_of_total_ids[0]["count(n)"]
 
-    # Initialize lists
-    already_processed_ids = []
+    # Check if combined_protein_data.csv exists and load it if it does
+    if os.path.exists("combined_protein_data.csv"):
+        print("Loading existing data from combined_protein_data.csv...")
+        df = pd.read_csv("combined_protein_data.csv")
 
-    minimal_cosine_similarity_in_circle = [1 for _ in range(len(data_working))]
-    ids_in_circle = [[] for _ in range(len(data_working))]
-    cosine_similarity_scores_vs_neighbors_data_lines = [
-        [1] for _ in range(len(data_working))
-    ]
-    number_of_neighbours = [[1] for _ in range(len(data_working))]
-    neighbour_added = [1 for _ in range(len(data_working))]
+        # Initialize lists from the loaded data
+        minimal_cosine_similarity_in_circle = df["minimal_cosine_similarity"].tolist()
+        ids_in_circle = [
+            eval(x) if isinstance(x, str) else x for x in df["ids_in_circle"]
+        ]
 
-    # Create a stable mapping of protein names to indices
-    protein_indices = {name: idx for idx, name in enumerate(data_working.keys())}
-    first_round = True
-    counter = 0
-    while len(already_processed_ids) < int(number_of_total_ids * 0.8):
+        # Handle number_of_neighbours and cosine_similarity_scores_vs_neighbors_data_lines
+        def safe_list_convert(x):
+            if isinstance(x, str):
+                try:
+                    return list(eval(x))
+                except:
+                    return [int(x)]
+            elif isinstance(x, (int, float)):
+                return [x]
+            else:
+                return list(x)
+
+        number_of_neighbours = [
+            safe_list_convert(x) for x in df["number_of_neighbours"]
+        ]
+        cosine_similarity_scores_vs_neighbors_data_lines = [
+            safe_list_convert(x) for x in df["cosine_similarity_scores"]
+        ]
+
+        # Get already processed IDs
+        if os.path.exists("already_processed_ids.csv"):
+            already_processed_ids = np.loadtxt(
+                "already_processed_ids.csv", dtype=str, delimiter=","
+            ).tolist()
+        else:
+            # If already_processed_ids.csv doesn't exist, create it from ids_in_circle
+            already_processed_ids = []
+            for circle in ids_in_circle:
+                already_processed_ids.extend(circle)
+            already_processed_ids = list(set(already_processed_ids))
+
+        print(f"Loaded {len(already_processed_ids)} already processed IDs")
+        print(f"Loaded {len(ids_in_circle)} circles")
+
+        # Create protein indices mapping
+        protein_indices = {name: idx for idx, name in enumerate(data_working.keys())}
+        first_round = False
+        counter = 0
+        neighbour_added = [1 for _ in range(len(data_working))]
+
+    else:
+        # Initialize lists as before if no existing data
+        already_processed_ids = []
+        minimal_cosine_similarity_in_circle = [1 for _ in range(len(data_working))]
+        ids_in_circle = [[] for _ in range(len(data_working))]
+        cosine_similarity_scores_vs_neighbors_data_lines = [
+            [1] for _ in range(len(data_working))
+        ]
+        number_of_neighbours = [[1] for _ in range(len(data_working))]
+        neighbour_added = [1 for _ in range(len(data_working))]
+        protein_indices = {name: idx for idx, name in enumerate(data_working.keys())}
+        first_round = True
+        counter = 0
+
+    while len(already_processed_ids) < int(number_of_total_ids * 0.9):
         counter += 1
         print(
             f"Processing batch {counter} total number of ids: {number_of_total_ids} currently processed: {len(already_processed_ids)}"
@@ -271,8 +323,6 @@ if __name__ == "__main__":
         plt.close()
 
         # save all of the files as csv with numpy
-        import numpy as np
-
         np.savetxt(
             "minimal_cosine_similarity_in_circle.csv",
             np.array(minimal_cosine_similarity_in_circle),
@@ -322,5 +372,5 @@ if __name__ == "__main__":
             delimiter=",",
             fmt="%s",
         )
-
+    print("Done")
     # nohup python scr/code/013_TEM_Circular_Detection.py > 013_TEM_Circular_Detection.log 2>&1 &
