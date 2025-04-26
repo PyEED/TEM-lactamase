@@ -78,5 +78,7 @@ if __name__ == "__main__":
                     LOGGER.error("Maximum number of retries (20) reached")
                     break
 
+    print("Done")
+
 
 # nohup python scr/code/005_TEM_Understand_Blast_DNA_AND_Pull.py > output_dna_data_pull.log 2>&1 &

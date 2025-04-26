@@ -96,62 +96,59 @@ if __name__ == "__main__":
         # convert the protein sequence to a string
         protein = str(protein)
 
-        # we need to check if this protein is already in the database
-        # beacuse the number of proteins is too large to check in a for loop we calulate the sequence embedding and check if it is already in the database
-        # because we want to make our lives hard we first get the embedding, then save the protein to the database, then check it it already exisit, if it does then remove it
-        # then either the newly added protein or the existing protein linked with DNA
-
-        # now we want to generate the Protein Node with the newly generated protein sequence
-        # the Source Attribute should be DE_NOVO_BASED_ON_DNA
-        id = uuid.uuid4()
-        query_protein_node = f"""
-            CREATE (p:Protein {{accession_id: "{id}", sequence: "{protein}", Source: "DE_NOVO_BASED_ON_DNA", seq_length: {len(protein)}}})
+        # Check if this protein sequence already exists in the database
+        query_check_existing_protein = f"""
+            MATCH (p:Protein {{sequence: "{protein}"}})
+            RETURN p.accession_id
         """
-        eedb.db.execute_write(query_protein_node)
+        existing_proteins = eedb.db.execute_read(query_check_existing_protein)
 
-        eedb.calculate_sequence_embeddings(model_name="esmc_300m")
+        if len(existing_proteins) > 0:
+            # Protein sequence already exists, link DNA to existing protein
+            existing_protein_id = existing_proteins[0]["p.accession_id"]
+            LOGGER.info(f"Found existing protein with sequence: {existing_protein_id}")
 
-        # we need to check if the embedding is already in the database
-        results = et.find_nearest_neighbors_based_on_vector_index(
-            query_protein_id=id,
-            index_name="vector_index_Protein_embedding",
-            number_of_neighbors=2,
-            db=eedb.db,
-        )
-        LOGGER.info(f"Results: {results} with the current new protein id {id}")
-
-        already_in_database = False
-
-        # if the score second attribute in the first return is 1.0 then we need to remove the protein
-        if results[1][1] == 1.0:
-            query_remove_protein = f"""
-                MATCH (p:Protein) WHERE p.accession_id = "{id}" DELETE p
+            # Check if relationship already exists between DNA and protein
+            query_check_relationship = f"""
+                MATCH (d:DNA {{accession_id: "{dna_id}"}})-[r:ENCODES]->(p:Protein {{accession_id: "{existing_protein_id}"}})
+                RETURN COUNT(r) AS relationship_count
             """
-            eedb.db.execute_write(query_remove_protein)
-            LOGGER.info(f"Removed Protein Node with accession id {id}")
-            already_in_database = True
+            relationship_exists = eedb.db.execute_read(query_check_relationship)
 
-        # now we want to create the relationship between the DNA and the Protein
-        if already_in_database:
-            query_dna_protein_relationship = f"""
-                MATCH (d:DNA) WHERE d.accession_id = "{dna_id}" 
-                MATCH (p:Protein) WHERE p.accession_id = "{results[1][0]}" 
-                CREATE (d)-[:ENCODES {{start: 1, end: 1}}]->(p)
-            """
-            LOGGER.info(
-                f"Created relationship between DNA and Protein with accession id {results[1][0]} and DNA id {dna_id}"
-            )
+            if relationship_exists[0]["relationship_count"] == 0:
+                # Create relationship between DNA and existing protein only if it doesn't exist
+                query_dna_protein_relationship = f"""
+                    MATCH (d:DNA) WHERE d.accession_id = "{dna_id}" 
+                    MATCH (p:Protein) WHERE p.accession_id = "{existing_protein_id}" 
+                    CREATE (d)-[:ENCODES {{start: 1, end: {len(protein)}}}]->(p)
+                """
+                eedb.db.execute_write(query_dna_protein_relationship)
+                LOGGER.info(
+                    f"Created relationship between DNA {dna_id} and existing protein {existing_protein_id}"
+                )
+            else:
+                LOGGER.info(
+                    f"Relationship already exists between DNA {dna_id} and protein {existing_protein_id}"
+                )
         else:
+            # Protein sequence doesn't exist, create new protein node
+            id = uuid.uuid4()
+            query_protein_node = f"""
+                CREATE (p:Protein {{accession_id: "{id}", sequence: "{protein}", Source: "DE_NOVO_BASED_ON_DNA", seq_length: {len(protein)}}})
+            """
+            eedb.db.execute_write(query_protein_node)
+            LOGGER.info(f"Created new protein node with accession id {id}")
+
+            # Create relationship between DNA and new protein
             query_dna_protein_relationship = f"""
                 MATCH (d:DNA) WHERE d.accession_id = "{dna_id}" 
                 MATCH (p:Protein) WHERE p.accession_id = "{id}" 
                 CREATE (d)-[:ENCODES {{start: 1, end: 1}}]->(p)
             """
+            eedb.db.execute_write(query_dna_protein_relationship)
             LOGGER.info(
-                f"Created relationship between DNA and Protein with accession id {id} and DNA id {dna_id}"
+                f"Created relationship between DNA {dna_id} and new protein {id}"
             )
-
-        eedb.db.execute_write(query_dna_protein_relationship)
 
 
 # nohup python scr/code/009_TEM_Codon_DNA_to_Protein.py > output_codon_dna_to_protein.log 2>&1 &

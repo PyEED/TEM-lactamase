@@ -73,7 +73,7 @@ if __name__ == "__main__":
     MATCH (p:Protein)-[r:MUTATION]-(q:Protein)
     WHERE p.accession_id IN $ids_in_circle AND q.accession_id IN $ids_in_circle AND size(r.from_positions) = 1
     RETURN p.accession_id AS source, q.accession_id AS target, r.from_positions[0] AS from_pos, r.to_positions[0] AS to_pos
-    LIMIT 4000
+    LIMIT 3000
     """
 
     results = eedb.db.execute_read(query, parameters={"ids_in_circle": ids_in_circle})
@@ -115,17 +115,24 @@ if __name__ == "__main__":
     plt.close()
 
     # Create visualization
-    plt.figure(figsize=(15, 15))
-    pos = nx.spring_layout(G, k=0.3, iterations=50)
+    plt.figure(figsize=(30, 30))
+    pos = nx.spring_layout(G, k=2.0, iterations=200, scale=2.0)
 
     # make a betweenness centrality plot
     betweenness_centrality = nx.betweenness_centrality(G)
-    # plot the betweenness centrality
+    # Get the top 10 nodes by betweenness centrality
+    top_nodes = sorted(
+        betweenness_centrality.items(), key=lambda x: x[1], reverse=True
+    )[:10]
+    top_nodes_dict = {node: value for node, value in top_nodes}
+
+    # plot the betweenness centrality for top 10 nodes
     plt.figure(figsize=(10, 8))
-    plt.bar(betweenness_centrality.keys(), betweenness_centrality.values())
-    plt.title("Betweenness Centrality")
+    plt.bar(top_nodes_dict.keys(), top_nodes_dict.values())
+    plt.title("Betweenness Centrality (Top 10 Nodes)")
     plt.xlabel("Node")
     plt.ylabel("Betweenness Centrality")
+    plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     plt.savefig("betweenness_centrality.png", dpi=300)
     plt.close()
