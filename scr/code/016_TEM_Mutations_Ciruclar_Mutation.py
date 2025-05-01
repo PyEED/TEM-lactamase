@@ -15,6 +15,16 @@ from pyeed.analysis.standard_numbering import StandardNumberingTool
 
 path_to_data_blast = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/blast_data_dna/2025-01-19_12-37-48"
 
+load_dotenv()
+password = os.getenv("NEO4J_NIKLAS_TEM_NEW_START")
+if password is None:
+    raise ValueError("KEY is not set in the .env file.")
+
+uri = "bolt://129.69.129.130:2127"
+user = "neo4j"
+
+blaTEM1a_database_id = "WP_000027057.1"
+
 
 def setup_logging(process_num):
     """Setup process-specific logging"""
@@ -41,16 +51,9 @@ def process_sequences(process_num, sequence_chunk, event):
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
 
-    load_dotenv()
-    password = os.getenv("NEO4J_NIKLAS_TEM_CLEAN")
-    if password is None:
-        raise ValueError("KEY is not set in the .env file.")
-
     LOGGER = setup_logging(process_num)
     LOGGER.info(f"Starting process {process_num} with {len(sequence_chunk)} sequences")
 
-    uri = "bolt://129.69.129.130:2123"
-    user = "neo4j"
     eedb = Pyeed(uri, user=user, password=password)
     eedb.db.initialize_db_constraints(user, password)
 
@@ -61,7 +64,6 @@ def process_sequences(process_num, sequence_chunk, event):
     sn = StandardNumberingTool(name=name_of_standard_numbering_tool)
     md = MutationDetection()
 
-    blaTEM1a_database_id = "CAD09800.1"
     max_number_of_mutations = 10
 
     def process_mutation_pair(pair):
@@ -121,6 +123,21 @@ def process_sequences(process_num, sequence_chunk, event):
     LOGGER.info(f"Process {process_num} completed successfully")
 
 
+def create_standard_numbering_tool(ids_in_circle):
+    # connect to the database
+
+    eedb = Pyeed(uri, user=user, password=password)
+
+    name_of_standard_numbering_tool = (
+        "standard_numbering_pairwise_circular_mutations_to_blaTEM1a"
+    )
+    sn = StandardNumberingTool(name=name_of_standard_numbering_tool)
+
+    sn.apply_standard_numbering_pairwise(
+        base_sequence_id=blaTEM1a_database_id, db=eedb.db, list_of_seq_ids=ids_in_circle
+    )
+
+
 if __name__ == "__main__":
     # Create an event to signal termination
     termination_event = multiprocessing.Event()
@@ -152,12 +169,11 @@ if __name__ == "__main__":
 
     names = [
         "TEM beta-lactamase",
+        "GIL beta-lactamase",
         "AER beta-lactamase",
-        "DES beta-lactamase",
-        "CKO beta-lactamase",
-        "BKC Beta-lactamase",
-        "BIC Beta-lactamase",
+        "LAP beta-lactamase",
         "HERA beta-lactamase",
+        "CKO beta-lactamase",
         "GES beta-lactamase",
     ]
 
@@ -169,6 +185,9 @@ if __name__ == "__main__":
     for circle_list in ids_in_circle_series:
         ids_in_circle.extend(circle_list)
     ids_in_circle = list(dict.fromkeys(ids_in_circle))
+
+    # create the standard numbering tool
+    create_standard_numbering_tool(ids_in_circle)
 
     # Split sequences into 6 chunks
     chunk_size = len(ids_in_circle) // 6

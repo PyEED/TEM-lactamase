@@ -114,9 +114,9 @@ if __name__ == "__main__":
 
     # identify all unique ids in the df_tem_lactamase dataframe
     unique_ids_elbd = df_tem_lactamase["protein_id_database"].unique()
-    # Annotate proteins with ELBD label in parallel
-    parallel_label_nodes("Protein", unique_ids_elbd, "ELBD", "Source")
-    LOGGER.info(f"Annotated {len(unique_ids_elbd)} proteins with Source ELBD")
+    # Annotate proteins with BLDB label in parallel
+    parallel_label_nodes("Protein", unique_ids_elbd, "BLDB", "Source")
+    LOGGER.info(f"Annotated {len(unique_ids_elbd)} proteins with Source BLDB")
 
     # identify all unique ids in the df_blast_dna dataframe
     unique_ids_blast_dna = df_blast_dna["Subject ID"].unique()
@@ -150,13 +150,13 @@ if __name__ == "__main__":
         and id not in unique_ids_elbd
         and id not in unique_ids_card
     ]
-    # Annotate these proteins with DE_NOVO_BASED_ON_DNA label in parallel
-    # because if not from ELDB not from CARD and not from BLAST it has to be de novo
+    # Annotate these proteins with PREDICTED_FROM_DNA label in parallel
+    # because if not from ELDB not from CARD and not from BLAST it has to be predicted from DNA
     parallel_label_nodes(
-        "Protein", proteins_to_annotate, "DE_NOVO_BASED_ON_DNA", "Source"
+        "Protein", proteins_to_annotate, "PREDICTED_FROM_DNA", "Source"
     )
     LOGGER.info(
-        f"Annotated {len(proteins_to_annotate)} proteins with Source DE_NOVO_BASED_ON_DNA"
+        f"Annotated {len(proteins_to_annotate)} proteins with Source PREDICTED_FROM_DNA"
     )
 
     eedb.create_coding_sequences_regions()

@@ -58,6 +58,7 @@ if __name__ == "__main__":
     unique_subject_ids = df["Subject ID"].unique()
     print(f"Number of unique subject ids: {len(unique_subject_ids)}")
 
+    """
     for batch in range(0, len(unique_subject_ids), 500):
         try:
             print(f"Batch {batch} of {len(unique_subject_ids)}")
@@ -77,6 +78,7 @@ if __name__ == "__main__":
             tries += 1
             if tries == 100:
                 LOGGER.error("Maximum number of retries (100) reached")
+    """
 
 
 # nohup python scr/code/003_TEM_Understand_Blast_Protein_AND_Pull.py > output_protein_data_pull.log 2>&1 &

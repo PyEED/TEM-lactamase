@@ -11,7 +11,7 @@ path_to_data_blast = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/blast_da
 
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM_CLEAN")
+password = os.getenv("NEO4J_NIKLAS_TEM_NEW_START")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
@@ -22,7 +22,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://129.69.129.130:2123"
+uri = "bolt://129.69.129.130:2127"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
@@ -65,6 +65,8 @@ for single_tem in result:
 
     ids_tem[tem_name]["accession_id"] = result_tem_url["n"]["accession_id"]
 
+print(f"The number of TEM-lactamase proteins is: {len(ids_tem)}")
+print(ids_tem)
 
 # max number of neighbours
 n_neighbours = 500
@@ -76,7 +78,7 @@ et = EmbeddingTool()
 sn = StandardNumberingTool(name=name_of_standard_numbering_tool)
 md = MutationDetection()
 
-blaTEM1a_id = "AAB59737.1"
+blaTEM1a_id = "CAD09800.1"
 blaTEM1a_database_id = None
 
 
@@ -149,5 +151,7 @@ if __name__ == "__main__":
                 )
 
                 LOGGER.info(
-                    f"The mutations are: {mutations}, there are {len(mutations)} mutations"
+                    f"The mutations are: {mutations}, there are {len(mutations['from_positions'])} mutations"
                 )
+
+    # nohup python scr/code/012_TEM_Mutation_Detection_to_blaTEM1.py > 012_TEM_Mutation_Detection_to_blaTEM1.log 2>&1 &

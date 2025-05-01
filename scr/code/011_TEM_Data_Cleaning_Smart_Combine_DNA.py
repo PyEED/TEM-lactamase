@@ -13,7 +13,7 @@ path_to_data_blast_dna = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/blas
 path_to_data_blast_protein = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/blast_data/combined_data_blast_5000_tem_209"
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM_CLEAN")
+password = os.getenv("NEO4J_NIKLAS_TEM_NEW_START")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
@@ -22,7 +22,7 @@ logging.basicConfig(
 )
 LOGGER = logging.getLogger(__name__)
 
-uri = "bolt://129.69.129.130:2123"
+uri = "bolt://129.69.129.130:2127"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
@@ -260,3 +260,5 @@ if __name__ == "__main__":
         processed += 1
         if processed % 100 == 0:
             LOGGER.info(f"Processed {processed} proteins.")
+
+    # nohup python scr/code/011_TEM_Data_Cleaning_Smart_Combine_DNA.py > 011_TEM_Data_Cleaning_Smart_Combine_DNA.log 2>&1 &
