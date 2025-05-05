@@ -60,12 +60,33 @@ if __name__ == "__main__":
     # how many unique subject id are there?
     unique_subject_ids = df["Subject ID"].unique()
     print(f"Number of unique subject ids: {len(unique_subject_ids)}")
+
+    # check wether the ID is already in the database either in ids or in the IdenticalIds (if not Null)
+    query_get_all_DNA_ids_and_identical_ids = """
+        MATCH (d:DNA) RETURN d.accession_id, d.IdenticalIds
+    """
+    all_DNA_ids_and_identical_ids = eedb.db.execute_read(query_get_all_DNA_ids_and_identical_ids)
+    print(f"Number of DNA entryies in the database: {len(all_DNA_ids_and_identical_ids)}")
+
+    # create one long list of all the DNA ids including the IdenticalIds
+    all_DNA_ids_plus_identical_ids = []
+    for dna in all_DNA_ids_and_identical_ids:
+        if dna["d.IdenticalIds"] is not None:
+            all_DNA_ids_plus_identical_ids.extend(dna["d.IdenticalIds"])
+        else:
+            all_DNA_ids_plus_identical_ids.append(dna["d.accession_id"])
+    print(f"Number of DNA ids plus identical ids: {len(all_DNA_ids_plus_identical_ids)}")
+
+    # exclude the ones already in the database
+    unique_subject_ids = [id for id in unique_subject_ids if id not in all_DNA_ids_plus_identical_ids]
+    print(f"Number of unique subject ids after exclusion: {len(unique_subject_ids)}")
+
     for batch in range(0, len(unique_subject_ids), 500):
         trys = 0
         print(f"Batch {batch} of {len(unique_subject_ids)}")
         while trys < 20:
             try:
-                batch_ids = unique_subject_ids[batch : batch + 500].tolist()
+                batch_ids = unique_subject_ids[batch : batch + 500]
 
                 eedb.fetch_from_primary_db(ids=batch_ids, db="ncbi_nucleotide")
 
