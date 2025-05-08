@@ -28,7 +28,7 @@ path_to_data_blast_dna = (
     "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/blast_data_dna"
 )
 path_to_data_backup = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/backup_data"
-path_to_db_blast = "/databases/nt"
+path_to_db_blast = "/databases/nt_new"
 
 blast = Blast(
     mode="blastn",
@@ -36,6 +36,7 @@ blast = Blast(
     db_name="nt",
     evalue=0.001,
     max_target_seqs=5000,
+    num_threads=15,
 )
 
 # ------------------------------------- FUNCTIONS -------------------------------------
@@ -84,7 +85,7 @@ if __name__ == "__main__":
     )
 
     print(
-        f"Number of DNA sequences to blast: {len(query_ids_of_dna_connected_to_proteins)- len(l)}"
+        f"Number of DNA sequences to blast: {abs(len(query_ids_of_dna_connected_to_proteins)- len(l))}"
     )
 
     for id in query_ids_of_dna_connected_to_proteins:
@@ -93,7 +94,6 @@ if __name__ == "__main__":
         id_clean = id["d.accession_id"]
         print(f"Blasting {id_clean}")
         run_blast_and_fetch_data_dnas(id_clean, path_to_data_blast_dna)
-        break
 
 
 # nohup python scr/code/004_TEM_Beta_Lactamase_BLAST_DNA.py > 004_TEM_Beta_Lactamase_BLAST_DNA.log 2>&1 &
