@@ -8,7 +8,7 @@ from pyeed.analysis.mutation_detection import MutationDetection
 from pyeed.analysis.standard_numbering import StandardNumberingTool
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM_CLEAN")
+password = os.getenv("NEO4J_NIKLAS_TEM_NEW_START")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
@@ -19,7 +19,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://129.69.129.130:2123"
+uri = "bolt://129.69.129.130:2127"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
@@ -69,7 +69,7 @@ n_neighbours = 100
 et = EmbeddingTool()
 md = MutationDetection()
 
-blaTEM1a_id = "AAB59737.1"  # Lohey
+blaTEM1a_id = "WP_000027057.1"  # Lahey
 blaTEM1a_database_id = None
 
 
