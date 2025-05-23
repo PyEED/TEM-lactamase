@@ -8,7 +8,7 @@ from pyeed.analysis.mutation_detection import MutationDetection
 from pyeed.analysis.sequence_alignment import PairwiseAligner
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM_CLEAN")
+password = os.getenv("NEO4J_NIKLAS_TEM_NEW_START")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
@@ -19,7 +19,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://129.69.129.130:2123"
+uri = "bolt://129.69.129.130:2127"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
@@ -280,3 +280,6 @@ if __name__ == "__main__":
                 print(
                     f"\n \n \n \n \n \n Updated DNA sequence for {dna_accession_ids[i]} with identity complement {alignment_complement['identity']} and original {alignment['identity']} and \n \n sequence new: {dna_sequence_new[new_start:new_end]} \n \n  sequence old: {dna_sequence_old[old_start:old_end]} \n \n sequence target: {dna_sequences[i][0][region_ids_1_start_end[i][1] : region_ids_1_start_end[i][2]]}"
                 )
+
+
+# nohup python scr/code/014_TEM_DNA_Cleaning_Forward_Backward.py > 014_TEM_DNA_Cleaning_Forward_Backward.log 2>&1 &

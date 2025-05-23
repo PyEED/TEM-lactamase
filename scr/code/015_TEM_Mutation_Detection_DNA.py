@@ -88,11 +88,11 @@ print(blaTEM1a_database_id)
 
 
 if __name__ == "__main__":
-    key_base_sequence_id = "AL513383.1"
-    key_base_sequence_Region_id = 10228113
+    key_base_sequence_id = "KT414903.1"
+    key_base_sequence_Region_id = 25639102
 
     name_of_standard_numbering_tool = (
-        "standard_numbering_pairwise_blaTEM1a_DNA_region_10228113"
+        "standard_numbering_pairwise_blaTEM1a_DNA_region_25639102"
     )
 
     sn_dna = StandardNumberingTool(name=name_of_standard_numbering_tool)
@@ -133,6 +133,8 @@ if __name__ == "__main__":
         region_ids_neo4j=result_region_ids,
     )
 
+    LOGGER.info("Done with the standard numbering tool")
+
     # apply the mutation detection tool to the DNAs
     pairs = [(key_base_sequence_id, i) for i in result_dna_accession_ids_accession_ids]
     for pair in pairs:
@@ -144,6 +146,8 @@ if __name__ == "__main__":
             standard_numbering_tool_name=name_of_standard_numbering_tool,
             region_ids_neo4j=result_region_ids,
         )
+
+    LOGGER.info("Done with the mutation detection tool")
 
     # find all Protein and their DNA which are not yet connected through a region region mutation to the base sequence DNA
     # the idea is that the protein are already connected and now I want to find the dna to the proteins whoch are already connected and get their region ids
@@ -181,6 +185,8 @@ if __name__ == "__main__":
 
     print(len(region_ids))  # 4801
 
+    LOGGER.info("Done with the standard numbering tool")
+
     batch_size = 10
     # in batches of 1000 apply these region ids to the standard numbering tool and detect the mutations
     for i in range(0, len(region_ids), batch_size):
@@ -204,3 +210,6 @@ if __name__ == "__main__":
                 region_ids_neo4j=region_ids[i + j : i + j + 1]
                 + [key_base_sequence_Region_id],
             )
+
+
+# nohup python scr/code/015_TEM_Mutation_Detection_DNA.py > 015_TEM_Mutation_Detection_DNA.log 2>&1 &

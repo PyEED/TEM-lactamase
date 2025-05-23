@@ -40,7 +40,7 @@ blast = Blast(
     db_name="nt",
     evalue=0.001,
     max_target_seqs=5000,
-    num_threads=15,
+    num_threads=30,
 )
 
 df_protein_id_database = eedb.fetch_from_primary_db(
