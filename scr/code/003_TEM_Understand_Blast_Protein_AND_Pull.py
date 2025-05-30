@@ -13,7 +13,7 @@ path_to_data_blast_protein = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/
 
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM_NEW_START")
+password = os.getenv("NEO4J_NIKLAS_TEM_THREE")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
@@ -24,7 +24,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://129.69.129.130:2127"
+uri = "bolt://129.69.129.130:2137"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
@@ -58,7 +58,6 @@ if __name__ == "__main__":
     unique_subject_ids = df["Subject ID"].unique()
     print(f"Number of unique subject ids: {len(unique_subject_ids)}")
 
-    """
     for batch in range(0, len(unique_subject_ids), 500):
         try:
             print(f"Batch {batch} of {len(unique_subject_ids)}")
@@ -78,7 +77,6 @@ if __name__ == "__main__":
             tries += 1
             if tries == 100:
                 LOGGER.error("Maximum number of retries (100) reached")
-    """
 
 
-# nohup python scr/code/003_TEM_Understand_Blast_Protein_AND_Pull.py > output_protein_data_pull.log 2>&1 &
+# nohup python scr/code/003_TEM_Understand_Blast_Protein_AND_Pull.py > 003_TEM_Understand_Blast_Protein_AND_Pull.log 2>&1 &

@@ -13,7 +13,7 @@ path_to_data_blast = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/blast_da
 
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM_NEW_START")
+password = os.getenv("NEO4J_NIKLAS_TEM_THREE")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
@@ -24,7 +24,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://129.69.129.130:2127"
+uri = "bolt://129.69.129.130:2137"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
@@ -102,4 +102,4 @@ if __name__ == "__main__":
     print("Done")
 
 
-# nohup python scr/code/005_TEM_Understand_Blast_DNA_AND_Pull.py > output_dna_data_pull.log 2>&1 &
+# nohup python scr/code/005_TEM_Understand_Blast_DNA_AND_Pull.py > 005_TEM_Understand_Blast_DNA_AND_Pull.log 2>&1 &

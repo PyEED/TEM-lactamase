@@ -16,7 +16,7 @@ file_path_index = "/home/nab/Niklas/TEM-lactamase/CARD_Data_Data/aro_index.tsv"
 
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM_NEW_START")
+password = os.getenv("NEO4J_NIKLAS_TEM_THREE")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
@@ -27,7 +27,7 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://129.69.129.130:2127"
+uri = "bolt://129.69.129.130:2137"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
 eedb.db.initialize_db_constraints(user, password)
