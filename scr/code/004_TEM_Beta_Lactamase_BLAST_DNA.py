@@ -6,6 +6,8 @@ import logging
 import os
 import pandas as pd
 from datetime import datetime
+import gc  # Add garbage collector
+import psutil  # Add process and system utilities
 
 from dotenv import load_dotenv
 from pyeed import Pyeed
@@ -35,15 +37,6 @@ df = pd.read_csv(
     "/home/nab/Niklas/TEM-lactamase/data/002_combined_data/TEM_lactamase_with_dna_accession_id.csv", sep=","
 )
 
-blast = Blast(
-    mode="blastn",
-    db_path=path_to_db_blast,
-    db_name="nt",
-    evalue=0.001,
-    max_target_seqs=5000,
-    num_threads=30,
-)
-
 df_protein_id_database = eedb.fetch_from_primary_db(
     df.loc[df['protein_id_database'].notna(), 'protein_id_database'].tolist(),
     db="ncbi_protein"
@@ -61,6 +54,14 @@ def run_blast_and_fetch_data_dnas(id, path_to_data_blast_dna):
     """
     eedb.fetch_from_primary_db(id, db="ncbi_nucleotide")
 
+    blast = Blast(
+        mode="blastn",
+        db_path=path_to_db_blast,
+        db_name="nt",
+        evalue=0.001,
+        max_target_seqs=5000,
+        num_threads=30,
+    )
 
     query_sequence = f"""
         MATCH (d:DNA) WHERE d.accession_id = "{id}"
@@ -69,14 +70,47 @@ def run_blast_and_fetch_data_dnas(id, path_to_data_blast_dna):
 
     sequence = eedb.db.execute_read(query_sequence)[0]['d.sequence']
     LOGGER.info(f"Blasting {id}")
-    df_blast = blast.search(sequence)
-
-    LOGGER.info(f"Saving {id}")
-    df_blast.to_csv(f"{path_to_data_blast_dna}/{id}.csv", index=False)
+    
+    try:
+        df_blast = blast.search(sequence)
+        
+        # Process the results in chunks if needed
+        if len(df_blast) > 10000:
+            LOGGER.info(f"Large result set ({len(df_blast)} hits) for {id}, processing in chunks")
+            chunk_size = 10000
+            for i in range(0, len(df_blast), chunk_size):
+                chunk = df_blast.iloc[i:i + chunk_size]
+                chunk.to_csv(f"{path_to_data_blast_dna}/{id}_chunk_{i//chunk_size}.csv", index=False)
+                # Clear chunk from memory
+                del chunk
+                gc.collect()
+        else:
+            LOGGER.info(f"Saving {id}")
+            df_blast.to_csv(f"{path_to_data_blast_dna}/{id}.csv", index=False)
+            
+        # Clear large DataFrames from memory
+        del df_blast
+        gc.collect()
+            
+    except Exception as e:
+        LOGGER.error(f"Error processing BLAST results for {id}: {str(e)}")
+        # Save error information
+        with open(f"{path_to_data_blast_dna}/{id}_error.txt", 'w') as f:
+            f.write(f"Error: {str(e)}\n")
+    
+    # Force garbage collection
+    gc.collect()
+    
+    # Log memory usage
+    process = psutil.Process()
+    memory_info = process.memory_info()
+    LOGGER.info(f"Memory usage after processing {id}: {memory_info.rss / 1024 / 1024:.2f} MB")
 
 
 if __name__ == "__main__":
-
+    # Clear memory at start
+    gc.collect()
+    
     # create folder of the timestamp
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 

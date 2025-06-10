@@ -23,21 +23,21 @@ uri = "bolt://129.69.129.130:7687"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password='12345678')
 
-eedb.db.wipe_database(date="2025-05-21")
+# eedb.db.wipe_database(date="2025-05-21")
 eedb.db.initialize_db_constraints(user, '12345678')
 
 df = pd.read_csv(
     "/home/nab/Niklas/TEM-lactamase/data/002_combined_data/TEM_lactamase_with_dna_accession_id.csv", sep=","
 )
 
-df_protein_id_database = eedb.fetch_from_primary_db(
-    df.loc[df['protein_id_database'].notna(), 'protein_id_database'].tolist(),
-    db="ncbi_protein"
-)
+# df_protein_id_database = eedb.fetch_from_primary_db(
+#     df.loc[df['protein_id_database'].notna(), 'protein_id_database'].tolist(),
+#     db="ncbi_protein"
+# )
 
-eedb.fetch_dna_entries_for_proteins()
+# eedb.fetch_dna_entries_for_proteins()
 eedb.calculate_sequence_embeddings(model_name="esmc_300m", batch_size=250)
-
+"""
 # ------------------------------------- FUNCTIONS -------------------------------------
 
 sn_protein = StandardNumberingTool(name="test_standard_numbering_protein")
@@ -65,4 +65,4 @@ for protein_id_1 in df['protein_id_database'].dropna():
         )
 
         already_seen_pairs.add((protein_id_1, protein_id_2))
-        
+"""
