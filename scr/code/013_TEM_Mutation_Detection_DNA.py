@@ -8,7 +8,7 @@ from pyeed.analysis.mutation_detection import MutationDetection
 from pyeed.analysis.standard_numbering import StandardNumberingTool
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM_NEW_START")
+password = os.getenv("NEO4J_NIKLAS_TEM_THREE")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
@@ -19,10 +19,10 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://129.69.129.130:2127"
+uri = "bolt://129.69.129.130:2137"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
-eedb.db.initialize_db_constraints(user, password)
+# eedb.db.initialize_db_constraints(user, password)
 
 
 # we start by reading in all 258 TEM-lactamase proteins and check their identical ids
@@ -88,11 +88,11 @@ print(blaTEM1a_database_id)
 
 
 if __name__ == "__main__":
-    key_base_sequence_id = "KT414903.1"
-    key_base_sequence_Region_id = 25639102
+    key_base_sequence_id = "AL513383.1"
+    key_base_sequence_Region_id = 23267091
 
     name_of_standard_numbering_tool = (
-        "standard_numbering_pairwise_blaTEM1a_DNA_region_25639102"
+        "standard_numbering_pairwise_blaTEM1a_DNA_region_23267091"
     )
 
     sn_dna = StandardNumberingTool(name=name_of_standard_numbering_tool)
@@ -212,4 +212,4 @@ if __name__ == "__main__":
             )
 
 
-# nohup python scr/code/015_TEM_Mutation_Detection_DNA.py > 015_TEM_Mutation_Detection_DNA.log 2>&1 &
+# nohup python scr/code/013_TEM_Mutation_Detection_DNA.py > 013_TEM_Mutation_Detection_DNA.log 2>&1 &

@@ -11,7 +11,7 @@ path_to_data_blast = "/home/nab/Niklas/TEM-lactamase/data/003_data_pull/blast_da
 
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM_NEW_START")
+password = os.getenv("NEO4J_NIKLAS_TEM_THREE")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
@@ -22,10 +22,10 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 
-uri = "bolt://129.69.129.130:2127"
+uri = "bolt://129.69.129.130:2137"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
-eedb.db.initialize_db_constraints(user, password)
+# eedb.db.initialize_db_constraints(user, password)
 
 
 # we start by reading in all 258 TEM-lactamase proteins and check their identical ids
@@ -69,7 +69,7 @@ print(f"The number of TEM-lactamase proteins is: {len(ids_tem)}")
 print(ids_tem)
 
 # max number of neighbours
-n_neighbours = 500
+n_neighbours = 1000
 name_of_standard_numbering_tool = (
     "standard_numbering_pairwise_blaTEM1a_mutations_to_blaTEM1"
 )

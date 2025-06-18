@@ -39,7 +39,7 @@ if __name__ == "__main__":
     # load in the the ontology of CARD, that means the structure of the ontology
 
     ontology_adaptor = OntologyAdapter()
-    # ontology_adaptor.import_ontology_file_in_db(file_path, eedb.db)
+    ontology_adaptor.import_ontology_file_in_db(file_path, eedb.db)
 
     # now we want to pull all of the proteins that are in the CARD ontology, and link them to the ontology structure
     # we now open the tsv index file from CARD and link the proteins to the ontology, but first we have to pull them

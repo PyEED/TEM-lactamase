@@ -16,3 +16,10 @@ Niklas's TEM-lactamase project is a big playground for him. So if the structure 
     - Number of DNA sequences connected to a protein: 53442
     - Number of Proteins without DNA: 4331
 - 009_z2 ignore all sizes besides 285 286 and 287
+- 010, 011
+
+#### Four:
+
+- 
+
+#### Five:
