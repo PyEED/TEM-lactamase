@@ -21,17 +21,17 @@ LOGGER = logging.getLogger(__name__)
 
 
 load_dotenv()
-password = os.getenv("NEO4J_NIKLAS_TEM_CLEAN")
+password = os.getenv("NEO4J_NIKLAS_TEM_THREE")
 if password is None:
     raise ValueError("KEY is not set in the .env file.")
 
-uri = "bolt://129.69.129.130:2123"
+uri = "bolt://129.69.129.130:2137"
 user = "neo4j"
 eedb = Pyeed(uri, user=user, password=password)
-eedb.db.initialize_db_constraints(user, password)
+# eedb.db.initialize_db_constraints(user, password)
 
 name_of_standard_numbering_tool = (
-    "standard_numbering_pairwise_circular_mutations_to_blaTEM1a"
+    "standard_numbering_pairwise_flagged_proteins"
 )
 et = EmbeddingTool()
 sn = StandardNumberingTool(name=name_of_standard_numbering_tool)
@@ -42,41 +42,36 @@ max_number_of_mutations = 10
 
 
 if __name__ == "__main__":
-    # Read and prepare data
-    path = "/home/nab/Niklas/TEM-lactamase/combined_protein_data.csv"
-    df = pd.read_csv(path)
-
-    names = [
-        "TEM beta-lactamase",
-        "AER beta-lactamase",
-        "DES beta-lactamase",
-        "CKO beta-lactamase",
-        "BKC Beta-lactamase",
-        "BIC Beta-lactamase",
-        "HERA beta-lactamase",
-        "GES beta-lactamase",
-    ]
-
-    df_tem = df[df["family_name"].isin(names)]
-    ids_in_circle_series = df_tem["ids_in_circle"].apply(
-        lambda x: ast.literal_eval(x) if x != "[]" else []
-    )
-    ids_in_circle = []
-    for circle_list in ids_in_circle_series:
-        ids_in_circle.extend(circle_list)
-    ids_in_circle = list(dict.fromkeys(ids_in_circle))
-
-    LOGGER.info(f"Number of IDs in circle: {len(ids_in_circle)}")
-
     # Query to find proteins with exactly one mutation between them
     query = """
-    MATCH (p:Protein)-[r:MUTATION]-(q:Protein)
-    WHERE p.accession_id IN $ids_in_circle AND q.accession_id IN $ids_in_circle AND size(r.from_positions) = 1
-    RETURN p.accession_id AS source, q.accession_id AS target, r.from_positions[0] AS from_pos, r.to_positions[0] AS to_pos
-    LIMIT 3000
+    MATCH (p1:Protein)-[r:MUTATION]->(p2:Protein)
+    WHERE p1.seq_length = 286 
+    AND p2.seq_length = 286
+    AND size(r.from_positions) = 1
+    WITH p1, p2, r
+    MATCH (o1:Organism)-[:ORIGINATES_FROM]-(p1)
+    MATCH (o2:Organism)-[:ORIGINATES_FROM]-(p2)
+    WHERE o1.taxonomy_id <> 32630
+    AND o2.taxonomy_id <> 32630
+    WITH p1, p2, r, o1, o2
+    MATCH (s:StandardNumbering {name: 'standard_numbering_pairwise_flagged_proteins'})-[s1:HAS_STANDARD_NUMBERING]-(p1)
+    MATCH (s)-[s2:HAS_STANDARD_NUMBERING]-(p2)
+    WITH p1, p2, r, s1, s2, o1, o2, rand() AS random_value, id(r) AS id_r
+    ORDER BY random_value
+    RETURN p1.accession_id AS source, 
+           p2.accession_id AS target, 
+           r.from_positions[0] AS from_pos, 
+           r.to_positions[0] AS to_pos, 
+           id_r AS id_r, 
+           r.from_monomers AS from_monomer, 
+           r.to_monomers AS to_monomer, 
+           s1.positions AS position_s1, 
+           s2.positions AS position_s2,
+           o1.name AS source_organism,
+           o2.name AS target_organism
     """
 
-    results = eedb.db.execute_read(query, parameters={"ids_in_circle": ids_in_circle})
+    results = eedb.db.execute_read(query)
     LOGGER.info(f"Number of results: {len(results)}")
 
     # Create an undirected graph

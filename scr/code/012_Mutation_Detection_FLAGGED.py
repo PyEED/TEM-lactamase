@@ -39,23 +39,31 @@ def setup_logging(process_num):
 
 def get_flagged_proteins():
     """Get all proteins with length_flag = 1"""
-    eedb = Pyeed(uri, user=user, password=password)
-    
-    query = """
-        MATCH (p:Protein)
-        WHERE p.length_flag = 1
-        RETURN p.accession_id as protein_id
-    """
-    
-    results = eedb.db.execute_read(query)
-    protein_ids = [record['protein_id'] for record in results]
-    
-    logging.info(f"Found {len(protein_ids)} flagged proteins")
-    return protein_ids
+    try:
+        eedb = Pyeed(uri, user=user, password=password)
+        
+        query = """
+            MATCH (p:Protein)
+            WHERE p.length_flag = 1
+            RETURN p.accession_id as protein_id
+        """
+        
+        results = eedb.db.execute_read(query)
+        protein_ids = [record['protein_id'] for record in results]
+        
+        logging.info(f"Found {len(protein_ids)} flagged proteins")
+        return protein_ids
+    except Exception as e:
+        logging.error(f"Error getting flagged proteins: {str(e)}")
+        raise
 
 
 def process_sequences(process_num, sequence_chunk, all_flagged_proteins, event):
     """Process a chunk of sequences in a single process"""
+
+    # Setup logging first
+    LOGGER = setup_logging(process_num)
+    LOGGER.info(f"Starting process {process_num} with {len(sequence_chunk)} sequences")
 
     # Set up signal handler for this process
     def signal_handler(signum, frame):
@@ -66,88 +74,121 @@ def process_sequences(process_num, sequence_chunk, all_flagged_proteins, event):
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
 
-    LOGGER = setup_logging(process_num)
-    LOGGER.info(f"Starting process {process_num} with {len(sequence_chunk)} sequences")
+    eedb = None
+    try:
+        eedb = Pyeed(uri, user=user, password=password)
+        # eedb.db.initialize_db_constraints(user, password)
 
-    eedb = Pyeed(uri, user=user, password=password)
-    eedb.db.initialize_db_constraints(user, password)
+        name_of_standard_numbering_tool = "standard_numbering_pairwise_flagged_proteins"
+        et = EmbeddingTool()
+        sn = StandardNumberingTool(name=name_of_standard_numbering_tool)
+        md = MutationDetection()
 
-    name_of_standard_numbering_tool = "standard_numbering_pairwise_flagged_proteins"
-    et = EmbeddingTool()
-    sn = StandardNumberingTool(name=name_of_standard_numbering_tool)
-    md = MutationDetection()
+        def process_mutation_pair(pair):
+            try:
+                mutations = md.get_mutations_between_sequences(
+                    sequence_id1=pair[0],
+                    sequence_id2=pair[1],
+                    db=eedb.db,
+                    standard_numbering_tool_name=name_of_standard_numbering_tool,
+                    save_to_db=True,
+                )
+                LOGGER.info(
+                    f"Processed pair {pair[0]} and {pair[1]}: {len(mutations['from_positions'])} mutations"
+                )
+                return mutations
+            except Exception as e:
+                LOGGER.error(f"Error processing pair {pair[0]} and {pair[1]}: {str(e)}")
+                return None
 
-    def process_mutation_pair(pair):
-        try:
-            mutations = md.get_mutations_between_sequences(
-                pair[0],
-                pair[1],
-                eedb.db,
-                name_of_standard_numbering_tool,
-                save_to_db=True,
-            )
+        for count, id_base in enumerate(sequence_chunk):
+            # Check if we should terminate
+            if event.is_set():
+                LOGGER.info(f"Process {process_num} received termination request")
+                break
+
             LOGGER.info(
-                f"Processed pair {pair[0]} and {pair[1]}: {len(mutations['from_positions'])} mutations"
-            )
-            return mutations
-        except Exception as e:
-            LOGGER.error(f"Error processing pair {pair[0]} and {pair[1]}: {str(e)}")
-            return None
-
-    for count, id_base in enumerate(sequence_chunk):
-        # Check if we should terminate
-        if event.is_set():
-            LOGGER.info(f"Process {process_num} received termination request")
-            break
-
-        LOGGER.info(
-            f"Processing sequence {count + 1} of {len(sequence_chunk)} percentage {(count / len(sequence_chunk)) * 100:.2f}%"
-        )
-
-        # Find nearest neighbors for this protein
-        try:
-            results = et.find_nearest_neighbors_based_on_vector_index(
-                eedb.db,
-                id_base,
-                index_name="vector_index_Protein_embedding",
-                number_of_neighbors=len(all_flagged_proteins),
+                f"Processing sequence {count + 1} of {len(sequence_chunk)} percentage {(count / len(sequence_chunk)) * 100:.2f}%"
             )
 
-            # Process mutations with other flagged proteins
-            for result_id, result_distance in results:
-                if result_id == id_base:
-                    continue
-                    
-                # Only process if the result is also a flagged protein
-                if result_id in all_flagged_proteins:
-                    # To avoid processing the same pair twice, only process if id_base < result_id lexicographically
-                    if id_base < result_id:
-                        mutations = process_mutation_pair([id_base, result_id])
+            # Find nearest neighbors for this protein
+            try:
+                results = et.find_nearest_neighbors_based_on_vector_index(
+                    index_name="vector_index_Protein_embedding",
+                    query_id=id_base,
+                    number_of_neighbors=len(all_flagged_proteins),
+                    db=eedb.db,
+                )
+
+                # Process mutations with other flagged proteins
+                for result_id, result_distance in results:
+                    if result_id == id_base:
+                        continue
                         
-        except Exception as e:
-            LOGGER.error(f"Error processing sequence {id_base}: {str(e)}")
-            continue
+                    # Only process if the result is also a flagged protein
+                    if result_id in all_flagged_proteins:
+                        # To avoid processing the same pair twice, only process if id_base < result_id lexicographically
+                        if id_base < result_id:
+                            mutations = process_mutation_pair([id_base, result_id])
+                            
+            except Exception as e:
+                LOGGER.error(f"Error processing sequence {id_base}: {str(e)}")
+                continue
 
-    LOGGER.info(f"Process {process_num} completed successfully")
+        LOGGER.info(f"Process {process_num} completed successfully")
+        
+    except Exception as e:
+        LOGGER.error(f"Fatal error in process {process_num}: {str(e)}")
+        raise
+    finally:
+        # Clean up database connection
+        if eedb:
+            try:
+                eedb.db.close()
+            except:
+                pass
 
 
 def create_standard_numbering_tool(flagged_protein_ids):
     """Create standard numbering tool for flagged proteins"""
-    eedb = Pyeed(uri, user=user, password=password)
+    try:
+        eedb = Pyeed(uri, user=user, password=password)
 
-    name_of_standard_numbering_tool = "standard_numbering_pairwise_flagged_proteins"
-    sn = StandardNumberingTool(name=name_of_standard_numbering_tool)
+        name_of_standard_numbering_tool = "standard_numbering_pairwise_flagged_proteins"
+        sn = StandardNumberingTool(name=name_of_standard_numbering_tool)
 
-    sn.apply_standard_numbering_pairwise(
-        base_sequence_id=blaTEM1a_database_id, 
-        db=eedb.db, 
-        list_of_seq_ids=flagged_protein_ids
-    )
+        sn.apply_standard_numbering_pairwise(
+            base_sequence_id=blaTEM1a_database_id, 
+            db=eedb.db, 
+            list_of_seq_ids=flagged_protein_ids
+        )
+        logging.info("Standard numbering tool created successfully")
+    except Exception as e:
+        logging.error(f"Error creating standard numbering tool: {str(e)}")
+        raise
 
 
 if __name__ == "__main__":
+
+    eedb = Pyeed(uri, user=user, password=password)
+    et = EmbeddingTool()
+
+    et.drop_vector_index(index_name="vector_index_Protein_embedding", db=eedb.db)
+
+    et.create_embedding_vector_index_neo4j(
+        index_name="vector_index_Protein_embedding",
+        db=eedb.db,
+        similarity_function="cosine",
+        m=512,
+        ef_construction=3200,
+        dimensions=960,
+    )
+
     # Create an event to signal termination
     termination_event = multiprocessing.Event()
+    
+    # Initialize processes list
+    processes = []
 
     def signal_handler(signum, frame):
         print(f"Main process received termination signal {signum}")
@@ -201,7 +242,6 @@ if __name__ == "__main__":
     print(f"Split {len(flagged_protein_ids)} proteins into {len(sequence_chunks)} chunks")
 
     # Create and start processes
-    processes = []
     for i, chunk in enumerate(sequence_chunks):
         if chunk:  # Only create process if chunk is not empty
             p = multiprocessing.Process(

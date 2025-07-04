@@ -145,6 +145,8 @@ if __name__ == "__main__":
             continue
         if id["d.accession_id"] == "LK391770.1":
             continue
+        if id["d.accession_id"] == "GQ149345.1":
+            continue
         id_clean = id["d.accession_id"]
         print(f"Blasting {id_clean}")
         run_blast_and_fetch_data_dnas(id_clean, path_to_data_blast_dna)
