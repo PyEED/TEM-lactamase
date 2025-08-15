@@ -115,7 +115,14 @@ def get_protein_network_data(eedb, name_of_standard_numbering_tool="standard_num
 
 
 def create_networkx_graph(results):
-    """Create NetworkX graph from mutation data"""
+    """Create NetworkX graph from mutation data
+    
+    Creates a protein network where:
+    - Nodes: Individual proteins (identified by accession IDs)
+    - Edges: Single mutations only (proteins differing by exactly one amino acid)
+    
+    This represents the single-step mutational landscape of the protein family.
+    """
     G = nx.Graph()
     
     for record in results:
@@ -135,7 +142,12 @@ def create_networkx_graph(results):
 
 
 def analyze_node_degrees(G, output_path):
-    """Perform node degree analysis and create visualizations"""
+    """Perform node degree analysis and create visualizations
+    
+    Note: Edges represent single mutations only (proteins that differ
+    by exactly one amino acid position). Degree = number of proteins
+    reachable by single mutations.
+    """
     LOGGER = logging.getLogger(__name__)
     
     # Calculate degree sequence and distribution
@@ -144,7 +156,7 @@ def analyze_node_degrees(G, output_path):
     degrees = sorted(degree_counts.keys())
     counts = [degree_counts[d] for d in degrees]
 
-    # Log-binning for power-law analysis
+    # Log-binning for better visualization
     max_degree = max(degrees)
     bin_edges = np.unique(2 ** np.arange(0, int(np.log2(max_degree))+1))
     
@@ -162,12 +174,7 @@ def analyze_node_degrees(G, output_path):
     binned_degrees = np.array(binned_degrees, dtype=float)
     binned_counts = np.array(binned_counts, dtype=float)
 
-    # Power-law fit
-    def power_law_log(x, a, b):
-        return a + b * np.log(x)
 
-    params, _ = optimize.curve_fit(power_law_log, binned_degrees, np.log(binned_counts))
-    a, b = params
 
     # Create plots
     plt.figure(figsize=(12, 8))
@@ -175,18 +182,18 @@ def analyze_node_degrees(G, output_path):
     # Subplot 1: Regular degree distribution
     plt.subplot(2, 2, 1)
     plt.bar(degrees, counts, alpha=0.7)
-    plt.title("Degree Distribution")
+    plt.title("Protein Network: Degree Distribution\n(Single Mutation Edges)")
     plt.xlabel("Degree")
     plt.ylabel("Frequency")
     plt.grid(True, alpha=0.3)
 
-    # Subplot 2: Log-log degree distribution
+    # Subplot 2: Log-log degree distribution with binning
     plt.subplot(2, 2, 2)
-    plt.loglog(degrees, counts, "bo-", linewidth=2, markersize=6, label='Observed')
-    plt.loglog(binned_degrees, np.exp(power_law_log(binned_degrees, a, b)),
-               'r-', linewidth=2, label=f'Power law fit: y = {np.exp(a):.2f}x^{b:.2f}')
+    plt.loglog(degrees, counts, "bo-", linewidth=1, markersize=4, alpha=0.6, label='Raw data')
+    if len(binned_degrees) > 0:
+        plt.loglog(binned_degrees, binned_counts, "rs-", linewidth=2, markersize=8, label='Log-binned')
     plt.grid(True, which="both", ls="--", alpha=0.4)
-    plt.title("Degree Distribution (Log-Log Scale)")
+    plt.title("Protein Network: Degree Distribution (Log-Log Scale)\n(Single Mutation Edges)")
     plt.xlabel("Degree (log)")
     plt.ylabel("Frequency (log)")
     plt.legend()
@@ -196,7 +203,7 @@ def analyze_node_degrees(G, output_path):
     sorted_degrees = sorted(degree_sequence, reverse=True)
     cumulative = np.arange(1, len(sorted_degrees) + 1) / len(sorted_degrees)
     plt.loglog(sorted_degrees, cumulative, "go-", linewidth=2, markersize=4)
-    plt.title("Cumulative Degree Distribution")
+    plt.title("Protein Network: Cumulative Degree Distribution\n(Single Mutation Edges)")
     plt.xlabel("Degree (log)")
     plt.ylabel("P(X ≥ k)")
     plt.grid(True, which="both", ls="--", alpha=0.4)
@@ -211,7 +218,7 @@ def analyze_node_degrees(G, output_path):
         'Min': min(degree_sequence)
     }
     plt.bar(degree_stats.keys(), degree_stats.values(), color='lightblue')
-    plt.title("Degree Statistics")
+    plt.title("Protein Network: Degree Statistics\n(Single Mutation Edges)")
     plt.ylabel("Value")
     plt.xticks(rotation=45)
 
@@ -221,8 +228,14 @@ def analyze_node_degrees(G, output_path):
 
     # Save degree statistics to file
     with open(f"{output_path}/degree_statistics.txt", 'w') as f:
-        f.write("NODE DEGREE ANALYSIS\n")
-        f.write("===================\n\n")
+        f.write("PROTEIN NETWORK: NODE DEGREE ANALYSIS\n")
+        f.write("====================================\n\n")
+        f.write("EDGE CRITERIA:\n")
+        f.write("Edges represent proteins connected by single mutations only\n")
+        f.write("(proteins that differ by exactly one amino acid position)\n\n")
+        f.write("INTERPRETATION:\n")
+        f.write("Node degree = number of proteins reachable by single mutations\n")
+        f.write("High degree = protein with many single-step mutational neighbors\n\n")
         f.write(f"Number of nodes: {G.number_of_nodes()}\n")
         f.write(f"Number of edges: {G.number_of_edges()}\n")
         f.write(f"Mean degree: {np.mean(degree_sequence):.3f}\n")
@@ -230,15 +243,24 @@ def analyze_node_degrees(G, output_path):
         f.write(f"Standard deviation: {np.std(degree_sequence):.3f}\n")
         f.write(f"Maximum degree: {max(degree_sequence)}\n")
         f.write(f"Minimum degree: {min(degree_sequence)}\n")
-        f.write(f"Power-law exponent: {b:.3f}\n")
-        f.write(f"Power-law coefficient: {np.exp(a):.3f}\n")
+        f.write(f"\nLOG BINNING INFORMATION:\n")
+        f.write(f"Number of log bins: {len(binned_degrees)}\n")
+        f.write(f"Bin edges: {bin_edges.tolist() if len(bin_edges) > 0 else 'None'}\n")
+        f.write(f"Binned degrees: {binned_degrees.tolist() if len(binned_degrees) > 0 else 'None'}\n")
+        f.write(f"Binned counts: {binned_counts.tolist() if len(binned_counts) > 0 else 'None'}\n")
 
     LOGGER.info(f"Degree analysis completed. Mean degree: {np.mean(degree_sequence):.3f}")
     return degree_stats
 
 
 def analyze_betweenness_centrality(G, output_path, data_tem_ids):
-    """Calculate and analyze betweenness centrality"""
+    """Calculate and analyze betweenness centrality
+    
+    Note: Edges in this protein network represent single mutations only
+    (proteins that differ by exactly one amino acid position).
+    Betweenness centrality measures how important each protein is as an
+    intermediary in single-step mutation pathways.
+    """
     LOGGER = logging.getLogger(__name__)
     
     # Calculate betweenness centrality
@@ -267,7 +289,7 @@ def analyze_betweenness_centrality(G, output_path, data_tem_ids):
     # Subplot 1: Top betweenness centrality nodes
     plt.subplot(2, 2, 1)
     plt.bar(range(len(labeled_nodes)), labeled_nodes.values())
-    plt.title("Top 20 Nodes by Betweenness Centrality")
+    plt.title("Protein Network: Top 20 Nodes by Betweenness Centrality\n(Single Mutation Edges)")
     plt.xlabel("Node")
     plt.ylabel("Betweenness Centrality")
     plt.xticks(range(len(labeled_nodes)), labeled_nodes.keys(), rotation=45, ha='right')
@@ -276,7 +298,7 @@ def analyze_betweenness_centrality(G, output_path, data_tem_ids):
     plt.subplot(2, 2, 2)
     centrality_values = list(betweenness_centrality.values())
     plt.hist(centrality_values, bins=50, alpha=0.7, edgecolor='black')
-    plt.title("Betweenness Centrality Distribution")
+    plt.title("Protein Network: Betweenness Centrality Distribution\n(Single Mutation Edges)")
     plt.xlabel("Betweenness Centrality")
     plt.ylabel("Frequency")
     plt.yscale('log')
@@ -288,7 +310,7 @@ def analyze_betweenness_centrality(G, output_path, data_tem_ids):
     plt.scatter(degrees, centralities, alpha=0.6)
     plt.xlabel("Node Degree")
     plt.ylabel("Betweenness Centrality")
-    plt.title("Degree vs Betweenness Centrality")
+    plt.title("Protein Network: Degree vs Betweenness Centrality\n(Single Mutation Edges)")
     
     # Calculate correlation
     correlation = np.corrcoef(degrees, centralities)[0, 1]
@@ -306,7 +328,7 @@ def analyze_betweenness_centrality(G, output_path, data_tem_ids):
         '90th percentile': np.percentile(centrality_values, 90)
     }
     plt.bar(centrality_stats.keys(), centrality_stats.values(), color='lightcoral')
-    plt.title("Betweenness Centrality Statistics")
+    plt.title("Protein Network: Betweenness Centrality Statistics\n(Single Mutation Edges)")
     plt.ylabel("Value")
     plt.xticks(rotation=45)
 
@@ -316,8 +338,15 @@ def analyze_betweenness_centrality(G, output_path, data_tem_ids):
 
     # Save centrality statistics
     with open(f"{output_path}/betweenness_centrality_statistics.txt", 'w') as f:
-        f.write("BETWEENNESS CENTRALITY ANALYSIS\n")
-        f.write("===============================\n\n")
+        f.write("PROTEIN NETWORK: BETWEENNESS CENTRALITY ANALYSIS\n")
+        f.write("===============================================\n\n")
+        f.write("EDGE CRITERIA:\n")
+        f.write("Edges represent proteins connected by single mutations only\n")
+        f.write("(proteins that differ by exactly one amino acid position)\n\n")
+        f.write("INTERPRETATION:\n")
+        f.write("Betweenness centrality measures how important each protein is\n")
+        f.write("as an intermediary in single-step mutation pathways.\n")
+        f.write("High centrality = key stepping stone in evolutionary paths.\n\n")
         f.write(f"Mean betweenness centrality: {np.mean(centrality_values):.6f}\n")
         f.write(f"Median betweenness centrality: {np.median(centrality_values):.6f}\n")
         f.write(f"Standard deviation: {np.std(centrality_values):.6f}\n")
@@ -334,7 +363,12 @@ def analyze_betweenness_centrality(G, output_path, data_tem_ids):
 
 
 def analyze_graph_motifs(G, output_path):
-    """Search for and analyze graph motifs"""
+    """Search for and analyze graph motifs
+    
+    Note: Analyzes motifs in single-mutation protein network.
+    Triangles = groups of 3 proteins all within single mutations of each other.
+    Stars = hub proteins with many single-mutation neighbors.
+    """
     LOGGER = logging.getLogger(__name__)
     
     # Count different motifs
@@ -392,7 +426,7 @@ def analyze_graph_motifs(G, output_path):
     # Subplot 1: Motif counts
     plt.subplot(2, 2, 1)
     plt.bar(motif_counts.keys(), motif_counts.values(), color='skyblue')
-    plt.title("Graph Motif Counts")
+    plt.title("Protein Network: Graph Motif Counts\n(Single Mutation Edges)")
     plt.ylabel("Count")
     plt.xticks(rotation=45)
     for i, v in enumerate(motif_counts.values()):
@@ -402,18 +436,18 @@ def analyze_graph_motifs(G, output_path):
     plt.subplot(2, 2, 2)
     if star_sizes:
         plt.hist(star_sizes, bins=20, alpha=0.7, edgecolor='black')
-        plt.title("Star Size Distribution")
+        plt.title("Protein Network: Star Size Distribution\n(Single Mutation Edges)")
         plt.xlabel("Star Size (Degree)")
         plt.ylabel("Frequency")
     else:
         plt.text(0.5, 0.5, "No stars found", ha='center', va='center', transform=plt.gca().transAxes)
-        plt.title("Star Size Distribution")
+        plt.title("Protein Network: Star Size Distribution\n(Single Mutation Edges)")
 
     # Subplot 3: Clustering coefficient distribution
     plt.subplot(2, 2, 3)
     clustering_coeffs = list(nx.clustering(G).values())
     plt.hist(clustering_coeffs, bins=30, alpha=0.7, edgecolor='black')
-    plt.title("Clustering Coefficient Distribution")
+    plt.title("Protein Network: Clustering Coefficient Distribution\n(Single Mutation Edges)")
     plt.xlabel("Clustering Coefficient")
     plt.ylabel("Frequency")
 
@@ -433,7 +467,7 @@ def analyze_graph_motifs(G, output_path):
     }
     
     plt.bar(normalized_motifs.keys(), normalized_motifs.values(), color='lightgreen')
-    plt.title("Normalized Motif Densities")
+    plt.title("Protein Network: Normalized Motif Densities\n(Single Mutation Edges)")
     plt.ylabel("Density")
     plt.xticks(rotation=45)
 
@@ -443,8 +477,15 @@ def analyze_graph_motifs(G, output_path):
 
     # Save motif statistics
     with open(f"{output_path}/motif_statistics.txt", 'w') as f:
-        f.write("GRAPH MOTIF ANALYSIS\n")
-        f.write("===================\n\n")
+        f.write("PROTEIN NETWORK: GRAPH MOTIF ANALYSIS\n")
+        f.write("====================================\n\n")
+        f.write("EDGE CRITERIA:\n")
+        f.write("Edges represent proteins connected by single mutations only\n")
+        f.write("(proteins that differ by exactly one amino acid position)\n\n")
+        f.write("MOTIF INTERPRETATIONS:\n")
+        f.write("- Triangles: Groups of 3 proteins all within single mutations\n")
+        f.write("- Stars: Hub proteins with many single-mutation neighbors\n")
+        f.write("- Paths: Chains of single-mutation connections\n\n")
         f.write(f"Network size: {n_nodes} nodes, {n_edges} edges\n\n")
         
         f.write("MOTIF COUNTS:\n")
@@ -466,7 +507,12 @@ def analyze_graph_motifs(G, output_path):
 
 
 def analyze_long_distance_interference(G, output_path):
-    """Investigate long distance interference in the graph"""
+    """Investigate long distance interference in the graph
+    
+    Note: Analyzes path lengths in single-mutation protein network.
+    Path length = minimum number of single mutations required to connect two proteins.
+    This reveals the mutational distance and evolutionary relationships.
+    """
     LOGGER = logging.getLogger(__name__)
     
     # Calculate shortest path lengths
@@ -529,14 +575,14 @@ def analyze_long_distance_interference(G, output_path):
     lengths = sorted(path_length_counts.keys())
     counts = [path_length_counts[l] for l in lengths]
     plt.bar(lengths, counts, alpha=0.7)
-    plt.title("Shortest Path Length Distribution")
+    plt.title("Protein Network: Shortest Path Length Distribution\n(Single Mutation Steps)")
     plt.xlabel("Path Length")
     plt.ylabel("Frequency")
 
     # Subplot 2: Path length vs frequency (log scale)
     plt.subplot(2, 3, 2)
     plt.semilogy(lengths, counts, 'bo-')
-    plt.title("Path Length Distribution (Log Scale)")
+    plt.title("Protein Network: Path Length Distribution (Log Scale)\n(Single Mutation Steps)")
     plt.xlabel("Path Length")
     plt.ylabel("Frequency (log)")
     plt.grid(True, alpha=0.3)
@@ -550,7 +596,7 @@ def analyze_long_distance_interference(G, output_path):
         'Small World\nSigma': small_world_sigma
     }
     plt.bar(distance_stats.keys(), distance_stats.values(), color='lightblue')
-    plt.title("Distance Statistics")
+    plt.title("Protein Network: Distance Statistics\n(Single Mutation Steps)")
     plt.ylabel("Value")
     plt.xticks(rotation=45)
 
@@ -559,7 +605,7 @@ def analyze_long_distance_interference(G, output_path):
     components = list(nx.connected_components(G))
     component_sizes = [len(comp) for comp in components]
     plt.hist(component_sizes, bins=20, alpha=0.7, edgecolor='black')
-    plt.title("Connected Component Sizes")
+    plt.title("Protein Network: Connected Component Sizes\n(Single Mutation Edges)")
     plt.xlabel("Component Size")
     plt.ylabel("Frequency")
     plt.yscale('log')
@@ -583,13 +629,13 @@ def analyze_long_distance_interference(G, output_path):
         
         if resistance_distances:
             plt.hist(resistance_distances, bins=15, alpha=0.7, edgecolor='black')
-            plt.title(f"Sample Resistance Distances\n(n={len(sample_nodes)})")
+            plt.title(f"Protein Network: Sample Resistance Distances\n(Single Mutation Steps, n={len(sample_nodes)})")
             plt.xlabel("Resistance Distance")
             plt.ylabel("Frequency")
     else:
         plt.text(0.5, 0.5, "Sample not connected", ha='center', va='center', 
                 transform=plt.gca().transAxes)
-        plt.title("Sample Resistance Distances")
+        plt.title("Protein Network: Sample Resistance Distances\n(Single Mutation Steps)")
 
     # Subplot 6: Small-world comparison
     plt.subplot(2, 3, 6)
@@ -602,7 +648,7 @@ def analyze_long_distance_interference(G, output_path):
     
     colors = ['blue', 'lightblue', 'red', 'lightcoral']
     plt.bar(comparison_data.keys(), comparison_data.values(), color=colors)
-    plt.title("Small-World Comparison")
+    plt.title("Protein Network: Small-World Comparison\n(Single Mutation Network)")
     plt.ylabel("Value")
     plt.xticks(rotation=45)
 
@@ -612,8 +658,14 @@ def analyze_long_distance_interference(G, output_path):
 
     # Save distance analysis statistics
     with open(f"{output_path}/long_distance_interference_statistics.txt", 'w') as f:
-        f.write("LONG DISTANCE INTERFERENCE ANALYSIS\n")
-        f.write("===================================\n\n")
+        f.write("PROTEIN NETWORK: LONG DISTANCE INTERFERENCE ANALYSIS\n")
+        f.write("===================================================\n\n")
+        f.write("EDGE CRITERIA:\n")
+        f.write("Edges represent proteins connected by single mutations only\n")
+        f.write("(proteins that differ by exactly one amino acid position)\n\n")
+        f.write("PATH LENGTH INTERPRETATION:\n")
+        f.write("Path length = minimum number of single mutations required\n")
+        f.write("to connect two proteins via evolutionary intermediates.\n\n")
         f.write(f"Network connectivity: {'Connected' if nx.is_connected(G) else 'Disconnected'}\n")
         f.write(f"Number of connected components: {nx.number_connected_components(G)}\n")
         f.write(f"Largest component size: {len(max(nx.connected_components(G), key=len))}\n\n")
